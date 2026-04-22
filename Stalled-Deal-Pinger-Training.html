@@ -645,7 +645,7 @@ Widget — actually closed lost, pulled out of budget process.</div>
 <script>
 // ═══════════════ STATE ═══════════════
 const SHEET_ID = '1rSbzHi2DynM3N35LX-nCgRcACa0hieZFeiUsIeGkvqY';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG1k4xd4KEprSUBi0OmG9-BEPqHE_irTWHiRBrva0Pa9w-HdKhG7jUh2ZuqsJfgtUzVA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnL5dzjxKR3Eunnl90FMMI3RwJp-N8JvutQE-znajEVrXwBERhAzjfQ0oU16DMDWhiSA/exec';
 const TOTAL_CHECKS = document.querySelectorAll('input[type="checkbox"][data-check]').length;
 let currentUser = null;
 
@@ -728,13 +728,20 @@ async function syncToSheet() {
   if (!APPS_SCRIPT_URL || !currentUser) return;
   const checked = document.querySelectorAll('input[type="checkbox"][data-check]:checked').length;
   const pct = Math.round((checked / TOTAL_CHECKS) * 100);
+  // Apps Script requires form-encoded POST for cross-origin requests
+  const params = new URLSearchParams({
+    email: currentUser,
+    progress: pct,
+    checks: checked,
+    total: TOTAL_CHECKS
+  });
   try {
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify({ email: currentUser, progress: pct, checks: checked, total: TOTAL_CHECKS }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
     });
-    // Refresh leaderboard after a short delay to let the sheet update
     setTimeout(refreshLeaderboard, 1500);
   } catch (e) { console.warn('Leaderboard sync failed', e); }
 }
