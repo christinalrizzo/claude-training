@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salesforce + Claude Training — Pelago Health</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pelago-yellow: #FAE355;
+  --accent: #722F49;
+  --bg: #FFF4DC;
+  --card-bg: #FFFDF5;
+  --border: #e0d8c8;
+  --text: #212633;
+  --text-light: #5a5a6e;
+  --success: #2d8a4e;
+  --success-bg: #e8f5e9;
+  --warning-bg: #fff3cd;
+  --info-bg: #e8f0fe;
+  --danger-bg: #fde8e8;
+  --prompt-bg: #f5f0e6;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+a { color: var(--accent); }
+
+/* ─── Banner ─── */
+.banner {
+  background: var(--pelago-yellow);
+  padding: 40px 24px 32px;
+  text-align: center;
+  border-bottom: 3px solid #e6cf3a;
+}
+.banner img { height: 32px; margin-bottom: 12px; }
+.banner .subtitle { font-size: 14px; font-weight: 500; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+.banner h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.banner p { color: var(--text-light); max-width: 560px; margin: 0 auto; font-size: 15px; }
+.banner .leaderboard-btn {
+  display: inline-block; margin-top: 16px; padding: 8px 20px; background: var(--accent); color: #fff;
+  border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+}
+
+/* ─── Progress Bar ─── */
+.progress-bar-wrap {
+  max-width: 700px; margin: -20px auto 0; padding: 0 24px; position: relative; z-index: 2;
+}
+.progress-bar-outer {
+  background: #fff; border-radius: 20px; padding: 16px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.progress-bar-label { font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
+.progress-bar-track { background: #f0ebe0; border-radius: 8px; height: 10px; overflow: hidden; }
+.progress-bar-fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+.progress-bar-count { font-size: 13px; color: var(--text-light); margin-top: 6px; text-align: right; }
+
+/* ─── Main Container ─── */
+main { max-width: 700px; margin: 32px auto; padding: 0 24px 80px; }
+
+/* ─── Chapters ─── */
+.chapter {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 24px; overflow: hidden;
+}
+.chapter-header {
+  display: flex; align-items: center; gap: 16px; padding: 20px 24px; cursor: default;
+}
+.chapter-num {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;
+}
+.chapter-header h2 { font-size: 20px; font-weight: 700; flex: 1; }
+.chapter-header .chapter-desc { font-size: 14px; color: var(--text-light); margin-top: 2px; font-weight: 400; }
+.chapter-body { padding: 0 24px 24px; }
+
+/* ─── Steps (accordion) ─── */
+.step { border-top: 1px solid var(--border); }
+.step:first-child { border-top: none; }
+.step-toggle {
+  width: 100%; background: none; border: none; padding: 16px 0; display: flex; align-items: center;
+  gap: 12px; cursor: pointer; font-family: inherit; text-align: left;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; background: #f0ebe0; color: var(--text);
+  display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0;
+}
+.step-toggle .title { font-size: 15px; font-weight: 600; flex: 1; color: var(--text); }
+.step-toggle .arrow { font-size: 12px; color: #aaa; transition: transform 0.2s; }
+.step.open .step-toggle .arrow { transform: rotate(90deg); }
+.step-content { display: none; padding: 0 0 16px 40px; font-size: 14px; color: var(--text); line-height: 1.7; }
+.step.open .step-content { display: block; }
+
+/* ─── Callouts ─── */
+.callout { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin: 12px 0; }
+.callout.success { background: var(--success-bg); }
+.callout.warning { background: var(--warning-bg); }
+.callout.info { background: var(--info-bg); }
+.callout.danger { background: var(--danger-bg); }
+.callout b { font-weight: 600; }
+
+/* ─── Prompt Boxes ─── */
+.prompt-box {
+  background: var(--prompt-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; margin: 12px 0; font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 13px; line-height: 1.6; position: relative; cursor: pointer; transition: box-shadow 0.2s;
+}
+.prompt-box:hover { box-shadow: 0 0 0 2px var(--accent); }
+.prompt-box::after {
+  content: 'Click to copy'; position: absolute; top: 8px; right: 12px;
+  font-size: 11px; color: var(--accent); font-family: 'DM Sans', sans-serif; font-weight: 500;
+}
+.prompt-box.copied::after { content: 'Copied!'; color: var(--success); }
+
+/* ─── Checkboxes ─── */
+.check-row { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.check-row input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+}
+.check-row label { font-size: 14px; font-weight: 500; cursor: pointer; }
+
+/* ─── Sign-in Section ─── */
+.signin-section {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; margin-bottom: 24px;
+}
+.signin-section h3 { font-size: 16px; margin-bottom: 8px; }
+.signin-section p { font-size: 14px; color: var(--text-light); margin-bottom: 16px; }
+.signin-row { display: flex; gap: 8px; }
+.signin-row input {
+  flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 14px; outline: none;
+}
+.signin-row input:focus { border-color: var(--accent); }
+.signin-row button {
+  padding: 10px 20px; background: var(--accent); color: #fff; border: none;
+  border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.signin-row button:hover { opacity: 0.9; }
+.welcome-msg { margin-top: 12px; font-size: 14px; color: var(--success); font-weight: 500; display: none; }
+
+/* ─── Team Tabs ─── */
+.team-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;
+}
+.team-tab {
+  padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--card-bg); font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.team-tab:hover { border-color: var(--accent); }
+.team-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.team-panel { display: none; }
+.team-panel.active { display: block; }
+
+/* ─── Agent Cards ─── */
+.agent-card {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 16px; overflow: hidden;
+}
+.agent-card-header {
+  padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+}
+.agent-card-header .icon { font-size: 24px; }
+.agent-card-header .info { flex: 1; }
+.agent-card-header .info h4 { font-size: 15px; font-weight: 600; }
+.agent-card-header .info p { font-size: 13px; color: var(--text-light); margin-top: 2px; }
+.agent-card-header .arrow { font-size: 12px; color: #aaa; transition: transform 0.2s; }
+.agent-card.open .agent-card-header .arrow { transform: rotate(90deg); }
+.agent-card-body { display: none; padding: 0 20px 20px; font-size: 14px; line-height: 1.7; }
+.agent-card.open .agent-card-body { display: block; }
+.agent-card-body h5 { font-size: 13px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+.agent-card-body h5:first-child { margin-top: 0; }
+.agent-card-body ul { padding-left: 20px; margin: 8px 0; }
+.agent-card-body li { margin-bottom: 4px; }
+
+/* ─── Leaderboard ─── */
+.leaderboard-section {
+  margin-top: 48px; padding-top: 32px; border-top: 2px solid var(--border);
+}
+.leaderboard-section h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.leaderboard-section > p { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
+.legend { display: flex; gap: 16px; margin-bottom: 20px; font-size: 12px; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+.stars-section h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.star-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+}
+.star-card .name { font-weight: 600; flex: 1; }
+.star-card .badge { font-size: 12px; font-weight: 600; color: var(--accent); }
+.star-card .date { font-size: 12px; color: var(--text-light); }
+.progress-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 13px; }
+.progress-table th {
+  text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border);
+  font-weight: 600; color: var(--text-light); font-size: 12px; text-transform: uppercase;
+}
+.progress-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.status-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+}
+.status-badge.complete { background: var(--success-bg); color: var(--success); }
+.status-badge.progress { background: var(--warning-bg); color: #856404; }
+.status-badge.not-started { background: #f0ebe0; color: var(--text-light); }
+.lb-actions { margin-top: 16px; display: flex; gap: 8px; }
+.lb-actions button {
+  padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 13px;
+  font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card-bg);
+}
+.lb-actions button:hover { border-color: var(--accent); }
+
+/* ─── Footer ─── */
+footer { text-align: center; padding: 24px; font-size: 13px; color: var(--text-light); }
+footer a { color: var(--accent); }
+
+/* ─── Completion Banner ─── */
+.completion-banner {
+  display: none; text-align: center; padding: 24px;
+  background: var(--success-bg); border-radius: var(--radius); margin-bottom: 24px;
+}
+.completion-banner.show { display: block; }
+.completion-banner h3 { font-size: 20px; margin-bottom: 4px; }
+.completion-banner p { font-size: 14px; color: var(--text-light); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ BANNER ═══════════════ -->
+<div class="banner">
+  <div class="subtitle">Commercial Team Training</div>
+  <h1>Salesforce + Claude</h1>
+  <p>Connect to Salesforce, learn the basics, and discover prompts and agents built for your team.</p>
+  <a href="#leaderboard" class="leaderboard-btn">View Leaderboard</a>
+</div>
+
+<!-- ═══════════════ PROGRESS BAR ═══════════════ -->
+<div class="progress-bar-wrap">
+  <div class="progress-bar-outer">
+    <div class="progress-bar-label">Your Progress</div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-bar-count" id="progressCount">0 / 0</div>
+  </div>
+</div>
+
+<main>
+
+<!-- ═══════════════ SIGN IN ═══════════════ -->
+<div class="signin-section" id="signinSection">
+  <h3>&#9733; Before You Begin</h3>
+  <p>Enter your Pelago email to save your progress and appear on the team leaderboard.</p>
+  <div class="signin-row">
+    <input type="email" id="emailInput" placeholder="yourname@pelagohealth.com">
+    <button onclick="handleSignin()">Save my spot</button>
+  </div>
+  <div class="welcome-msg" id="welcomeMsg"></div>
+</div>
+
+<!-- ═══════════════ COMPLETION BANNER ═══════════════ -->
+<div class="completion-banner" id="completionBanner">
+  <h3>&#127881; You're a Salesforce + Claude Pro!</h3>
+  <p>You've completed all the training steps. Time to put it to work.</p>
+</div>
+
+<!-- ═══════════════ CHAPTER 1: CONNECT TO SALESFORCE ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">1</div>
+    <div>
+      <h2>Connect to Salesforce</h2>
+      <div class="chapter-desc">Enable the plugin, authorize, and verify the connection. Takes about 3 minutes.</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step open">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <span class="title">Enable the Salesforce plugin</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>The Salesforce plugin is already available in your Claude account under the <b>Pelago</b> section.</p>
+        <ol>
+          <li>Open the Claude desktop app</li>
+          <li>Go to <b>Settings &rarr; Plugins</b></li>
+          <li>Under the <b>Pelago</b> section, find the <b>Salesforce</b> plugin</li>
+          <li>Make sure it's <b>enabled</b></li>
+        </ol>
+        <div class="callout success"><b>That's it!</b> No files to download &mdash; the plugin is managed by your admin.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch1_1" data-check="ch1_1" onchange="saveProgress()">
+          <label for="ch1_1">Salesforce plugin enabled</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <span class="title">Log into Salesforce in your browser</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Before connecting, make sure you're logged into Salesforce in your browser.</p>
+        <ol>
+          <li>Log out of any other Salesforce orgs (staging, sandbox, etc.)</li>
+          <li>Go to your production Salesforce login page</li>
+          <li>Log in with your credentials</li>
+          <li><b>Keep this tab open</b> &mdash; Claude will use this session to authenticate</li>
+        </ol>
+        <div class="callout warning"><b>Important:</b> Only be logged into <b>one</b> Salesforce org at a time, or the connection can go to the wrong place.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch1_2" data-check="ch1_2" onchange="saveProgress()">
+          <label for="ch1_2">Logged into Salesforce</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <span class="title">Connect Claude to Salesforce</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Start a new <b>Cowork</b> session and ask Claude anything about Salesforce. It will prompt you to authorize the connection.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Who am I in Salesforce?</div>
+        <ol>
+          <li>A browser tab will open with a Salesforce authorization screen</li>
+          <li>Review the permissions and click <b>Allow</b></li>
+          <li>The tab will close &mdash; go back to Claude</li>
+          <li>Claude should return your name and Salesforce profile info</li>
+        </ol>
+        <div class="callout success"><b>If you see your name, you're connected!</b> You only need to do this once.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch1_3" data-check="ch1_3" onchange="saveProgress()">
+          <label for="ch1_3">Connected to Salesforce</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ CHAPTER 2: LEARN THE BASICS ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">2</div>
+    <div>
+      <h2>Learn the Basics</h2>
+      <div class="chapter-desc">Try core queries and understand what Claude can (and can't) do with Salesforce.</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <span class="title">Look up accounts</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Ask Claude to pull account data. Use plain English &mdash; no need to know SOQL or Salesforce query syntax.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me 10 accounts in Salesforce</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Find the account for [type a real client name]</div>
+        <p>Claude will return a formatted table with account details. Try swapping in different account names or filters.</p>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_1" data-check="ch2_1" onchange="saveProgress()">
+          <label for="ch2_1">Looked up accounts</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <span class="title">Search for contacts</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Find people at specific accounts or search across all contacts.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Who are the contacts at [account name]?</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Find the contact info for [person's name]</div>
+        <p>Claude returns names, emails, phone numbers, titles, and account associations.</p>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_2" data-check="ch2_2" onchange="saveProgress()">
+          <label for="ch2_2">Searched for contacts</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <span class="title">Check opportunities</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>View your pipeline, filter by stage, or check what's closing soon.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">What are our open opportunities?</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Which opportunities are closing this quarter?</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me our top 5 deals by Sellable Eligible Lives</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_3" data-check="ch2_3" onchange="saveProgress()">
+          <label for="ch2_3">Checked opportunities</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">4</div>
+        <span class="title">Look up a Client Profile</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Client Profiles contain program details, billing, eligibility, and marketing info for each client.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me the client profile for [client name]</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">What programs does [client name] have? Show me Tobacco, Alcohol, Opioid, and Cannabis</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">What are the billing details for [client name]?</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_4" data-check="ch2_4" onchange="saveProgress()">
+          <label for="ch2_4">Looked up a Client Profile</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">5</div>
+        <span class="title">Know the guardrails</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Claude can <b>read</b> data and <b>update</b> existing records. But there are hard limits:</p>
+        <div class="callout danger"><b>Creating new records is blocked.</b> If you ask Claude to create a new contact, account, or any other record, it will refuse. Create records directly in Salesforce.</div>
+        <div class="callout danger"><b>Deleting records is not available.</b> Claude has no delete capability through this integration.</div>
+        <div class="callout warning"><b>Updates require your confirmation.</b> Claude will always show you what it's about to change and ask for a "yes" before making any update.</div>
+        <p>Try it &mdash; ask Claude to create something and watch it refuse:</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Create a new contact named Test Person at Test Company</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_5" data-check="ch2_5" onchange="saveProgress()">
+          <label for="ch2_5">Tested the guardrails</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ CHAPTER 3: PROMPTS & AGENTS FOR YOUR TEAM ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">3</div>
+    <div>
+      <h2>Prompts &amp; Agents for Your Team</h2>
+      <div class="chapter-desc">Select your team below to see prompts and agents designed for your workflows.</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="team-tabs" id="teamTabs">
+      <button class="team-tab active" onclick="switchTeam('cs')">Client Services</button>
+      <button class="team-tab" onclick="switchTeam('cm')">Client Marketing</button>
+      <button class="team-tab" onclick="switchTeam('mktg')">BDRs</button>
+      <button class="team-tab" onclick="switchTeam('es')">Employer Sales</button>
+      <button class="team-tab" onclick="switchTeam('ps')">Partner Sales</button>
+      <button class="team-tab" onclick="switchTeam('impl')">Implementation</button>
+      <button class="team-tab" onclick="switchTeam('revops')">Commercial Data</button>
+    </div>
+
+    <!-- ── CLIENT SERVICES ── -->
+    <div class="team-panel active" id="panel-cs">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128203;</span>
+          <div class="info"><h4>Client Account Overview</h4><p>Get a full picture of a client before a meeting or QBR</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Give me a complete overview of [client name]. Include their account details, all contacts and their roles, open opportunities, client profile info (programs, billing, eligibility, marketing tier), and any recent activity. Format it as a briefing doc I can review before a meeting.</div>
+          <h5>What it does</h5>
+          <p>Pulls from Accounts, Contacts, Opportunities, and Client Profile to build a single briefing document. Great for QBR prep or onboarding a new CSM to an account.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128200;</span>
+          <div class="info"><h4>Current IR and Pacing</h4><p>Check invoiced revenue pacing for an account</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me the invoiced revenue pacing for [client name]. Include current IR, pacing targets, and how they're trending against plan.</div>
+          <h5>What it does</h5>
+          <p>Pulls invoiced revenue and pacing data from the account to show how a client is tracking. Great for QBRs and internal check-ins.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128221;</span>
+          <div class="info"><h4>Update Health Grade Notes</h4><p>Update the health grade notes on a client account</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Update the health grade notes for [client name] to: [paste your notes here]</div>
+          <h5>What it does</h5>
+          <p>Claude will show you the current health grade notes and the new text, then ask for confirmation before saving the update.</p>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_cs" data-check="ch3_cs" onchange="saveProgress()">
+        <label for="ch3_cs">I tried a Client Services agent</label>
+      </div>
+    </div>
+
+    <!-- ── CLIENT MARKETING ── -->
+    <div class="team-panel" id="panel-cm">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#127919;</span>
+          <div class="info"><h4>Marketing Tier Report</h4><p>See which clients are in each marketing tier</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all client profiles grouped by marketing tier. For each tier, list the client name, comms cadence, and whether they're incentive eligible.</div>
+          <h5>What it does</h5>
+          <p>Queries Client Profile to pull Marketing_Tier__c, Comms_Cadence__c, and Incentive_Eligible__c across all clients, grouped for easy review.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128236;</span>
+          <div class="info"><h4>Client Comms Prep</h4><p>Pull everything you need before sending a client communication</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">I'm preparing a communication for [client name]. Pull their marketing tier, comms cadence, preferred channels, active programs, and all client contacts with their roles. Tell me who should receive the communication and what programs to reference.</div>
+          <h5>What it does</h5>
+          <p>Combines Client Profile marketing fields with Client Contacts to give you a complete picture before you draft anything.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128202;</span>
+          <div class="info"><h4>Incentive-Eligible Client List</h4><p>Find all clients eligible for incentive programs</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all client profiles where incentive eligible is true. Include their name, marketing tier, active programs, and total eligible lives.</div>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_cm" data-check="ch3_cm" onchange="saveProgress()">
+        <label for="ch3_cm">I tried a Client Marketing agent</label>
+      </div>
+    </div>
+
+    <!-- ── COMMERCIAL MARKETING ── -->
+    <div class="team-panel" id="panel-mktg">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128640;</span>
+          <div class="info"><h4>Pipeline by Stage</h4><p>Get a snapshot of the pipeline for marketing reporting</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Give me a summary of our opportunity pipeline grouped by stage. For each stage, show the count of opportunities and total Sellable Eligible Lives. Sort by stage order.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#127758;</span>
+          <div class="info"><h4>Account Industry Breakdown</h4><p>Segment accounts by industry for targeting</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all accounts grouped by industry. For each industry, show the count of accounts and list the account names. Which industries have the most accounts?</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128161;</span>
+          <div class="info"><h4>New Deals This Quarter</h4><p>Track recently created opportunities for campaign attribution</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all opportunities created this quarter. Include the account name, opportunity name, stage, Sellable Eligible Lives, and created date. Sort by created date.</div>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_mktg" data-check="ch3_mktg" onchange="saveProgress()">
+        <label for="ch3_mktg">I tried a BDRs agent</label>
+      </div>
+    </div>
+
+    <!-- ── EMPLOYER SALES ── -->
+    <div class="team-panel" id="panel-es">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128176;</span>
+          <div class="info"><h4>Deal Prep Briefing</h4><p>Pull everything about a prospect before a sales call</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">I have a sales call with [company name] coming up. Pull their account details, all contacts (with titles and roles), any open opportunities with stages and Sellable Eligible Lives, and their client profile if one exists. Give me a briefing I can review in 5 minutes.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128200;</span>
+          <div class="info"><h4>My Open Pipeline</h4><p>See all your open deals with stages and close dates</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all open opportunities where I'm the owner. Include the account name, stage, Sellable Eligible Lives, and close date. Sort by close date and flag anything overdue.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128221;</span>
+          <div class="info"><h4>Update Opportunity Stage</h4><p>Move a deal forward after a meeting</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Update the stage on the [opportunity name] opportunity to [new stage name]</div>
+          <p>Claude will show the current stage and the new stage, then ask you to confirm before saving.</p>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_es" data-check="ch3_es" onchange="saveProgress()">
+        <label for="ch3_es">I tried an Employer Sales agent</label>
+      </div>
+    </div>
+
+    <!-- ── PARTNER SALES ── -->
+    <div class="team-panel" id="panel-ps">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#129309;</span>
+          <div class="info"><h4>Partner Account Review</h4><p>Review a partner's accounts and associated opportunities</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all accounts and opportunities associated with [partner name]. For each account, list the contacts and any open deals with their stages and Sellable Eligible Lives.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128269;</span>
+          <div class="info"><h4>Eligibility Deep Dive</h4><p>Check a client's eligibility details for partner conversations</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me the eligibility details for [client name] — total eligible lives, eligibility file info, eligibility partner, SFTP details, and any related partner information.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128176;</span>
+          <div class="info"><h4>Client Billing Summary</h4><p>Pull billing details for a client quickly</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">What are the billing details for [client name]? Show me the rate, billing method, billing minimum, case rate, and any surcharge details.</div>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_ps" data-check="ch3_ps" onchange="saveProgress()">
+        <label for="ch3_ps">I tried a Partner Sales agent</label>
+      </div>
+    </div>
+
+    <!-- ── IMPLEMENTATION ── -->
+    <div class="team-panel" id="panel-impl">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#9989;</span>
+          <div class="info"><h4>Implementation Readiness Check</h4><p>Verify a client has all the data needed before launch</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">I'm preparing to implement [client name]. Pull their full client profile and check: do they have eligibility file info set up, is there a billing method defined, are programs assigned, and is there at least one client contact? Flag anything that's missing or blank.</div>
+          <h5>What it does</h5>
+          <p>Scans the Client Profile for required fields and flags gaps so you can address them before go-live.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128101;</span>
+          <div class="info"><h4>Client Contact Directory</h4><p>Get a clean list of all contacts and their roles</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all contacts for [client name] from both the standard Contacts and Client Contacts objects. Include their name, title, email, phone, and role. Format as a table.</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#128203;</span>
+          <div class="info"><h4>Enrollment Data Pull</h4><p>Check enrollment numbers for a client</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me the enrollment data for [client name]. Pull from the Member Enrollment object and the Client Profile. Include total eligible lives, enrollment counts by program, and any related dates.</div>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_impl" data-check="ch3_impl" onchange="saveProgress()">
+        <label for="ch3_impl">I tried an Implementation agent</label>
+      </div>
+    </div>
+
+    <!-- ── COMMERCIAL DATA ── -->
+    <div class="team-panel" id="panel-revops">
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#9202;</span>
+          <div class="info"><h4>Time in Stage Analysis</h4><p>See how long deals are sitting in each pipeline stage</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all open opportunities with their current stage, how long they've been in that stage, and their last modified date. Flag any that have been in the same stage for more than 30 days.</div>
+          <div class="prompt-box" onclick="copyPrompt(this)">What's the average time in stage for our opportunities? Break it down by stage and highlight where deals are getting stuck.</div>
+          <h5>What it does</h5>
+          <p>Pulls opportunity stage data and dates to identify stalled deals and bottlenecks in the pipeline. Use for pipeline hygiene reviews and forecasting accuracy.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#129309;</span>
+          <div class="info"><h4>Partner Impact on Deals</h4><p>Analyze how different partners affect deal outcomes</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all opportunities grouped by partner. For each partner, show the number of deals, total Sellable Eligible Lives, win rate, and average time to close. Which partners are driving the most volume?</div>
+          <div class="prompt-box" onclick="copyPrompt(this)">Compare the pipeline for [partner A] vs [partner B] — show open deals, stages, Sellable Eligible Lives, and how long each deal has been open.</div>
+          <h5>What it does</h5>
+          <p>Cross-references opportunities with partner data to show which partnerships are producing results and where to double down.</p>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleAgent(this)">
+          <span class="icon">&#9888;</span>
+          <div class="info"><h4>Stale Deal Finder</h4><p>Surface deals with no recent activity, notes, or next steps</p></div>
+          <span class="arrow">&#9654;</span>
+        </div>
+        <div class="agent-card-body">
+          <h5>Prompt</h5>
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me what deals are stale. Look for open opportunities that have no recent activity, no recent note or quick note, and no next step defined. Flag anything that hasn't been touched in over 14 days.</div>
+          <h5>What it does</h5>
+          <p>Scans open opportunities for missing or outdated notes, quick notes, and next steps to surface deals that need attention before they go cold.</p>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="ch3_revops" data-check="ch3_revops" onchange="saveProgress()">
+        <label for="ch3_revops">I tried a Commercial Data agent</label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ LEADERBOARD ═══════════════ -->
+<div class="leaderboard-section" id="leaderboard">
+  <h2>Training Leaderboard</h2>
+  <p>See who's leading the charge. Complete all tasks to reach 100%.</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#2d8a4e"></span> Completed</span>
+    <span><span class="dot" style="background:#f0ad4e"></span> In progress</span>
+    <span><span class="dot" style="background:#ccc"></span> Not started</span>
+  </div>
+
+  <div class="stars-section" id="starsSection">
+    <h3>&#11088; Salesforce + Claude All-Stars</h3>
+    <div id="starsContainer">
+      <p style="color:var(--text-light); font-size:14px;">Complete all tasks to appear here! Be the first.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px;">Still On The Journey</h3>
+  <table class="progress-table" id="progressTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Progress</th>
+        <th>Status</th>
+        <th>Last active</th>
+      </tr>
+    </thead>
+    <tbody id="progressTableBody">
+      <tr><td colspan="4" style="color:var(--text-light);">Sign in to see the leaderboard</td></tr>
+    </tbody>
+  </table>
+
+  <div class="lb-actions">
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="refreshLeaderboard()">Refresh</button>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Pelago Health &mdash; Salesforce + Claude Training &bull;
+  <a href="https://support.claude.com/en/articles/13345190-get-started-with-cowork">Cowork Docs</a> &bull;
+  <a href="https://christinalrizzo.github.io/cowork-onboarding/">General Onboarding</a>
+</footer>
+
+<script>
+// ═══════════════ STATE ═══════════════
+const SHEET_ID = ''; // Add your Google Sheet ID here
+const TOTAL_CHECKS = document.querySelectorAll('input[type="checkbox"][data-check]').length;
+let currentUser = null;
+
+// ═══════════════ ACCORDION TOGGLES ═══════════════
+function toggleStep(btn) {
+  const step = btn.closest('.step');
+  step.classList.toggle('open');
+}
+
+function toggleAgent(header) {
+  const card = header.closest('.agent-card');
+  card.classList.toggle('open');
+}
+
+// ═══════════════ TEAM TABS ═══════════════
+function switchTeam(id) {
+  document.querySelectorAll('.team-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.team-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+// ═══════════════ PROMPT COPY ═══════════════
+function copyPrompt(el) {
+  navigator.clipboard.writeText(el.textContent.replace('Click to copy', '').replace('Copied!', '').trim());
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 1500);
+}
+
+// ═══════════════ PROGRESS TRACKING ═══════════════
+function updateProgressBar() {
+  const checked = document.querySelectorAll('input[type="checkbox"][data-check]:checked').length;
+  const pct = Math.round((checked / TOTAL_CHECKS) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressCount').textContent = checked + ' / ' + TOTAL_CHECKS;
+
+  const banner = document.getElementById('completionBanner');
+  if (checked === TOTAL_CHECKS) {
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function saveProgress() {
+  updateProgressBar();
+  const data = {};
+  document.querySelectorAll('input[type="checkbox"][data-check]').forEach(cb => {
+    data[cb.dataset.check] = cb.checked;
+  });
+  localStorage.setItem('sfdc_training_progress', JSON.stringify(data));
+  localStorage.setItem('sfdc_training_email', document.getElementById('emailInput').value);
+
+  // If Google Sheet is configured, sync there too
+  if (SHEET_ID && currentUser) {
+    syncToSheet();
+  }
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem('sfdc_training_progress');
+  if (saved) {
+    const data = JSON.parse(saved);
+    Object.keys(data).forEach(key => {
+      const cb = document.querySelector(`[data-check="${key}"]`);
+      if (cb) cb.checked = data[key];
+    });
+  }
+  const email = localStorage.getItem('sfdc_training_email');
+  if (email) {
+    document.getElementById('emailInput').value = email;
+  }
+  updateProgressBar();
+}
+
+// ═══════════════ SIGN IN ═══════════════
+function handleSignin() {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  currentUser = email;
+  const name = email.split('@')[0].split('.').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ');
+  const msg = document.getElementById('welcomeMsg');
+  msg.textContent = 'Welcome, ' + name + '! Your progress will be saved.';
+  msg.style.display = 'block';
+  localStorage.setItem('sfdc_training_email', email);
+  saveProgress();
+}
+
+// ═══════════════ GOOGLE SHEETS SYNC (placeholder) ═══════════════
+async function syncToSheet() {
+  // To enable Google Sheets leaderboard:
+  // 1. Create a Google Sheet with columns: Email, Name, Progress, Checks, LastActive
+  // 2. Deploy a Google Apps Script web app that accepts POST requests
+  // 3. Set SHEET_ID above and update the fetch URL below
+  //
+  // const checked = document.querySelectorAll('input[type="checkbox"][data-check]:checked').length;
+  // const pct = Math.round((checked / TOTAL_CHECKS) * 100);
+  // await fetch('YOUR_APPS_SCRIPT_URL', {
+  //   method: 'POST',
+  //   body: JSON.stringify({ email: currentUser, progress: pct, checks: checked, total: TOTAL_CHECKS }),
+  // });
+}
+
+async function refreshLeaderboard() {
+  // Fetch from Google Sheet and populate the table
+  // Placeholder until Sheet is configured
+}
+
+function exportCSV() {
+  // Export leaderboard data as CSV
+  const rows = document.querySelectorAll('#progressTable tr');
+  let csv = '';
+  rows.forEach(r => {
+    const cells = r.querySelectorAll('th, td');
+    csv += Array.from(cells).map(c => '"' + c.textContent + '"').join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sfdc-training-leaderboard.csv';
+  a.click();
+}
+
+// ═══════════════ INIT ═══════════════
+loadProgress();
+const savedEmail = localStorage.getItem('sfdc_training_email');
+if (savedEmail) {
+  document.getElementById('emailInput').value = savedEmail;
+  currentUser = savedEmail;
+  const name = savedEmail.split('@')[0].split('.').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ');
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + name + '!';
+  document.getElementById('welcomeMsg').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
