@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stalled Deal Pinger — Pelago Health Training</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pelago-yellow: #FAE355;
+  --accent: #722F49;
+  --bg: #FFF4DC;
+  --card-bg: #FFFDF5;
+  --border: #e0d8c8;
+  --text: #212633;
+  --text-light: #5a5a6e;
+  --success: #2d8a4e;
+  --success-bg: #e8f5e9;
+  --warning-bg: #fff3cd;
+  --info-bg: #e8f0fe;
+  --danger-bg: #fde8e8;
+  --prompt-bg: #f5f0e6;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+a { color: var(--accent); }
+
+/* ─── Banner ─── */
+.banner {
+  background: var(--pelago-yellow);
+  padding: 40px 24px 32px;
+  text-align: center;
+  border-bottom: 3px solid #e6cf3a;
+}
+.banner .subtitle { font-size: 14px; font-weight: 500; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+.banner h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.banner p { color: var(--text-light); max-width: 560px; margin: 0 auto; font-size: 15px; }
+.banner .tag {
+  display: inline-block; margin-top: 16px; padding: 6px 16px; background: var(--accent);
+  color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+}
+
+/* ─── Progress Bar ─── */
+.progress-bar-wrap {
+  max-width: 700px; margin: -20px auto 0; padding: 0 24px; position: relative; z-index: 2;
+}
+.progress-bar-outer {
+  background: #fff; border-radius: 20px; padding: 16px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.progress-bar-label { font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
+.progress-bar-track { background: #f0ebe0; border-radius: 8px; height: 10px; overflow: hidden; }
+.progress-bar-fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+.progress-bar-count { font-size: 13px; color: var(--text-light); margin-top: 6px; text-align: right; }
+
+/* ─── Main Container ─── */
+main { max-width: 700px; margin: 32px auto; padding: 0 24px 80px; }
+
+/* ─── Chapters ─── */
+.chapter {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 24px; overflow: hidden;
+}
+.chapter-header {
+  display: flex; align-items: center; gap: 16px; padding: 20px 24px; cursor: default;
+}
+.chapter-num {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;
+}
+.chapter-header h2 { font-size: 20px; font-weight: 700; flex: 1; }
+.chapter-header .chapter-desc { font-size: 14px; color: var(--text-light); margin-top: 2px; font-weight: 400; }
+.chapter-body { padding: 0 24px 24px; }
+
+/* ─── Steps (accordion) ─── */
+.step { border-top: 1px solid var(--border); }
+.step:first-child { border-top: none; }
+.step-toggle {
+  width: 100%; background: none; border: none; padding: 16px 0; display: flex; align-items: center;
+  gap: 12px; cursor: pointer; font-family: inherit; text-align: left;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; background: #f0ebe0; color: var(--text);
+  display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0;
+}
+.step-toggle .title { font-size: 15px; font-weight: 600; flex: 1; color: var(--text); }
+.step-toggle .arrow { font-size: 12px; color: #aaa; transition: transform 0.2s; }
+.step.open .step-toggle .arrow { transform: rotate(90deg); }
+.step-content { display: none; padding: 0 0 16px 40px; font-size: 14px; color: var(--text); line-height: 1.7; }
+.step.open .step-content { display: block; }
+
+/* ─── Callouts ─── */
+.callout { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin: 12px 0; }
+.callout.success { background: var(--success-bg); }
+.callout.warning { background: var(--warning-bg); }
+.callout.info { background: var(--info-bg); }
+.callout.danger { background: var(--danger-bg); }
+.callout b { font-weight: 600; }
+
+/* ─── Prompt / Message Boxes ─── */
+.prompt-box {
+  background: var(--prompt-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; margin: 12px 0; font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 13px; line-height: 1.6; position: relative; cursor: pointer; transition: box-shadow 0.2s;
+}
+.prompt-box:hover { box-shadow: 0 0 0 2px var(--accent); }
+.prompt-box::after {
+  content: 'Click to copy'; position: absolute; top: 8px; right: 12px;
+  font-size: 11px; color: var(--accent); font-family: 'DM Sans', sans-serif; font-weight: 500;
+}
+.prompt-box.copied::after { content: 'Copied!'; color: var(--success); }
+
+/* ─── Slack Message Preview ─── */
+.slack-preview {
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin: 12px 0; font-size: 13px; line-height: 1.7;
+}
+.slack-preview .slack-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.slack-preview .slack-avatar {
+  width: 32px; height: 32px; background: var(--accent); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.slack-preview .slack-sender { font-weight: 600; font-size: 13px; }
+.slack-preview .slack-time { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+.slack-preview .slack-body { white-space: pre-wrap; }
+.slack-preview .slack-body strong { font-weight: 700; }
+.slack-preview .slack-body .deal {
+  background: #f8f5ef; border-left: 3px solid var(--accent); padding: 8px 12px;
+  border-radius: 0 6px 6px 0; margin: 8px 0; font-size: 12.5px; line-height: 1.6;
+}
+
+/* ─── Checkboxes ─── */
+.check-row { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.check-row input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+}
+.check-row label { font-size: 14px; font-weight: 500; cursor: pointer; }
+
+/* ─── Flow Diagram ─── */
+.flow-diagram {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  margin: 16px 0; flex-wrap: wrap; gap: 4px;
+}
+.flow-node {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; font-size: 12px; font-weight: 600; text-align: center; min-width: 100px;
+}
+.flow-node .time { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+.flow-node .label { color: var(--text); line-height: 1.3; }
+.flow-arrow { font-size: 18px; color: var(--accent); padding: 0 2px; font-weight: 300; }
+
+/* ─── Sign-in Section ─── */
+.signin-section {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; margin-bottom: 24px;
+}
+.signin-section h3 { font-size: 16px; margin-bottom: 8px; }
+.signin-section p { font-size: 14px; color: var(--text-light); margin-bottom: 16px; }
+.signin-row { display: flex; gap: 8px; }
+.signin-row input {
+  flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 14px; outline: none;
+}
+.signin-row input:focus { border-color: var(--accent); }
+.signin-row button {
+  padding: 10px 20px; background: var(--accent); color: #fff; border: none;
+  border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.signin-row button:hover { opacity: 0.9; }
+.welcome-msg { margin-top: 12px; font-size: 14px; color: var(--success); font-weight: 500; display: none; }
+
+/* ─── Completion Banner ─── */
+.completion-banner {
+  display: none; text-align: center; padding: 24px;
+  background: var(--success-bg); border-radius: var(--radius); margin-bottom: 24px;
+}
+.completion-banner.show { display: block; }
+.completion-banner h3 { font-size: 20px; margin-bottom: 4px; }
+.completion-banner p { font-size: 14px; color: var(--text-light); }
+
+/* ─── FAQ ─── */
+.faq-item { border-top: 1px solid var(--border); }
+.faq-item:first-child { border-top: none; }
+.faq-toggle {
+  width: 100%; background: none; border: none; padding: 14px 0; display: flex; align-items: flex-start;
+  gap: 10px; cursor: pointer; font-family: inherit; text-align: left;
+}
+.faq-q { font-size: 14px; font-weight: 600; flex: 1; color: var(--text); }
+.faq-arrow { font-size: 11px; color: #aaa; transition: transform 0.2s; padding-top: 3px; }
+.faq-item.open .faq-arrow { transform: rotate(90deg); }
+.faq-body { display: none; padding: 0 0 14px 0; font-size: 14px; color: var(--text-light); line-height: 1.7; }
+.faq-item.open .faq-body { display: block; }
+
+/* ─── Leaderboard ─── */
+.leaderboard-section {
+  margin-top: 48px; padding-top: 32px; border-top: 2px solid var(--border);
+}
+.leaderboard-section h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.leaderboard-section > p { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
+.legend { display: flex; gap: 16px; margin-bottom: 20px; font-size: 12px; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+.stars-section h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.star-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+}
+.star-card .name { font-weight: 600; flex: 1; }
+.star-card .badge { font-size: 12px; font-weight: 600; color: var(--accent); }
+.star-card .date { font-size: 12px; color: var(--text-light); }
+.progress-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 13px; }
+.progress-table th {
+  text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border);
+  font-weight: 600; color: var(--text-light); font-size: 12px; text-transform: uppercase;
+}
+.progress-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.status-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+}
+.status-badge.complete { background: var(--success-bg); color: var(--success); }
+.status-badge.progress { background: var(--warning-bg); color: #856404; }
+.status-badge.not-started { background: #f0ebe0; color: var(--text-light); }
+.lb-actions { margin-top: 16px; display: flex; gap: 8px; }
+.lb-actions button {
+  padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 13px;
+  font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card-bg);
+}
+.lb-actions button:hover { border-color: var(--accent); }
+
+/* ─── Footer ─── */
+footer { text-align: center; padding: 24px; font-size: 13px; color: var(--text-light); }
+footer a { color: var(--accent); }
+
+ol, ul { padding-left: 20px; margin: 8px 0; }
+li { margin-bottom: 4px; }
+p { margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ BANNER ═══════════════ -->
+<div class="banner">
+  <div class="subtitle">Commercial Team Training</div>
+  <h1>Stalled Deal Pinger</h1>
+  <p>Connect Salesforce to Claude and learn how the automated Stalled Deal Pinger keeps your pipeline moving — no manual follow-ups needed.</p>
+  <span class="tag">&#9889; Runs automatically every weekday</span>
+  <br><a href="#leaderboard" class="leaderboard-btn" style="display:inline-block;margin-top:14px;padding:8px 20px;background:var(--accent);color:#fff;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;">View Leaderboard</a>
+</div>
+
+<!-- ═══════════════ PROGRESS BAR ═══════════════ -->
+<div class="progress-bar-wrap">
+  <div class="progress-bar-outer">
+    <div class="progress-bar-label">Your Progress</div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-bar-count" id="progressCount">0 / 0</div>
+  </div>
+</div>
+
+<main>
+
+<!-- ═══════════════ SIGN IN ═══════════════ -->
+<div class="signin-section" id="signinSection">
+  <h3>&#9733; Before You Begin</h3>
+  <p>Enter your Pelago email to save your progress.</p>
+  <div class="signin-row">
+    <input type="email" id="emailInput" placeholder="yourname@pelagohealth.com">
+    <button onclick="handleSignin()">Save my spot</button>
+  </div>
+  <div class="welcome-msg" id="welcomeMsg"></div>
+</div>
+
+<!-- ═══════════════ COMPLETION BANNER ═══════════════ -->
+<div class="completion-banner" id="completionBanner">
+  <h3>&#127881; You're ready to go!</h3>
+  <p>You've completed both training modules. Your next ping arrives at Around 8am MDT on the next weekday.</p>
+</div>
+
+<!-- ═══════════════ CHAPTER 1: CONNECT TO SALESFORCE ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">1</div>
+    <div>
+      <h2>Connect to Salesforce</h2>
+      <div class="chapter-desc">Enable the plugin, authorize, and verify the connection. Takes about 3 minutes.</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step open">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <span class="title">Log into Salesforce in your browser</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Before connecting, make sure you're logged into Salesforce in your browser. There's only one org — just use your normal login.</p>
+        <ol>
+          <li>Go to your Salesforce login page</li>
+          <li>Log in with your normal credentials</li>
+          <li><b>Keep this tab open</b> — Claude will use this session to authenticate</li>
+        </ol>
+        <div class="check-row">
+          <input type="checkbox" id="ch1_2" data-check="ch1_2" onchange="saveProgress()">
+          <label for="ch1_2">Logged into Salesforce</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <span class="title">Connect Claude to Salesforce</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Open a new <b>Cowork</b> session and ask Claude to identify you in Salesforce. This triggers the one-time authorization.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Who am I in Salesforce?</div>
+        <ol>
+          <li>A browser tab will open with a Salesforce authorization screen</li>
+          <li>Review the permissions and click <b>Allow</b></li>
+          <li>The tab will close automatically — switch back to Claude</li>
+          <li>Claude should respond with your name and Salesforce profile</li>
+        </ol>
+        <div class="callout success"><b>If you see your name, you're connected!</b> You only need to authorize once. Future sessions will connect automatically.</div>
+        <div class="callout info"><b>Note for the Stalled Deal Pinger:</b> Claude needs your Salesforce connection to identify which deals belong to you and to write updates back after you reply. This authorization is what makes the two-way sync possible.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch1_3" data-check="ch1_3" onchange="saveProgress()">
+          <label for="ch1_3">Connected to Salesforce successfully</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ CHAPTER 2: THE STALLED DEAL PINGER ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">2</div>
+    <div>
+      <h2>The Stalled Deal Pinger</h2>
+      <div class="chapter-desc">How the automated two-part workflow keeps deals moving with almost no effort from you.</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step open">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">1</div>
+        <span class="title">How the system works — the big picture</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>The Stalled Deal Pinger is a fully automated two-part workflow that runs every weekday. Here's the full cycle:</p>
+
+        <div class="flow-diagram">
+          <div class="flow-node">
+            <div class="time">Around 8am MDT</div>
+            <div class="label">Claude scans<br>Salesforce</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="time">Around 8am MDT</div>
+            <div class="label">Slack DM<br>sent to you</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="time">You reply</div>
+            <div class="label">Reply in<br>Slack thread</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="time">Around 4pm MDT</div>
+            <div class="label">Salesforce<br>updated</div>
+          </div>
+        </div>
+
+        <p style="margin-top:12px"><b>Part 1 — Morning (Around 8am MDT):</b> Claude queries Salesforce for any of your deals that are in SAO stage or later, closing in 2026, and haven't been recently updated. If it finds stalled deals, it sends you a Slack DM listing them with their details.</p>
+        <p><b>Part 2 — Afternoon (Around 4pm MDT):</b> Claude reads the replies in each Slack thread, interprets what you wrote, and automatically updates the <b>Next Step</b> and <b>Stage</b> fields in Salesforce. It then sends Christina a summary of all changes made that day.</p>
+        <div class="callout info"><b>Nothing to set up.</b> This workflow is already running. You'll start receiving pings automatically as long as your Salesforce connection is active.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_1" data-check="ch2_1" onchange="saveProgress()">
+          <label for="ch2_1">I understand how the workflow runs</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">2</div>
+        <span class="title">Which deals get flagged as "stalled"</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Claude looks for deals that meet <b>all three</b> of these criteria:</p>
+        <ul>
+          <li><b>Stage:</b> SAO (Sales Accepted Opportunity) or any later stage</li>
+          <li><b>Close date:</b> Closing in 2026</li>
+          <li><b>Activity:</b> No logged activity in 14+ days — "last touch" means the last time an email, call, or note was logged on the opportunity record in Salesforce</li>
+        </ul>
+        <div class="callout warning"><b>Early-stage deals won't be pinged.</b> Deals in Discovery or earlier stages are not included. Only deals that are actively progressing (SAO+) and showing no movement get flagged.</div>
+        <p>If you have a deal that looks stalled but you've been actively working it, make sure you're logging emails, calls, or notes on the opportunity record in Salesforce — that's what resets the clock.</p>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_2" data-check="ch2_2" onchange="saveProgress()">
+          <label for="ch2_2">I know which deals will be flagged</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">3</div>
+        <span class="title">What the Slack ping looks like</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Around <b>Around 8am MDT on weekdays</b>, you'll receive a direct message from Claude in Slack if you have stalled deals. It will look something like this:</p>
+
+        <div class="slack-preview">
+          <div class="slack-header">
+            <div class="slack-avatar">C</div>
+            <div>
+              <div class="slack-sender">Claude <span style="font-size:11px; background:#e8f0fe; color:#3366cc; padding:1px 6px; border-radius:3px; font-weight:600; margin-left:4px;">APP</span></div>
+              <div class="slack-time">Around 8am MDT</div>
+            </div>
+          </div>
+          <div class="slack-body">Hey [Your Name] 👋 I found <strong>2 deals</strong> in your pipeline that haven't been updated recently. Can you give me a quick status on each one?
+
+<div class="deal"><strong>1. Acme Corp — Proposal/Price Quote</strong>
+📅 Close date: June 30, 2026
+🕐 Last updated: 18 days ago
+📝 Next step: (none set)</div>
+<div class="deal"><strong>2. Widget Co — Value Proposition</strong>
+📅 Close date: Sept 15, 2026
+🕐 Last updated: 22 days ago
+📝 Next step: Send follow-up deck</div>
+Reply in this thread with a quick update on each deal — what's the status, any stage change, and what the next step is. I'll update Salesforce for you by end of day! ✅</div>
+        </div>
+
+        <div class="callout success"><b>No action needed until you're ready.</b> You can reply to the ping anytime before Around 4pm MDT and your updates will be captured. Replies received after Around 4pm MDT will be picked up the following business day.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_3" data-check="ch2_3" onchange="saveProgress()">
+          <label for="ch2_3">I know what the Slack ping looks like</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">4</div>
+        <span class="title">How to reply — and what Claude will update</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p><b>Reply directly in the Slack thread</b> (not as a new DM — use the thread reply). Write naturally — Claude understands plain English. Just tell it what's happening with each deal.</p>
+        <p>Claude will pick up on three things from your reply:</p>
+        <ul>
+          <li><b>Next Step</b> — what you're doing next (e.g., "sending a proposal Friday", "following up after their board meeting")</li>
+          <li><b>Stage change</b> — if you mention moving a deal forward or back (e.g., "move to Negotiation", "they went cold")</li>
+          <li><b>No action needed</b> — if you let Claude know a deal doesn't need updating</li>
+        </ul>
+
+        <p style="margin-top:12px; font-weight:600;">Example replies that work well:</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Acme Corp — call scheduled for Friday, I'll have a proposal to them by end of next week. Move to Negotiation.
+Widget Co — went quiet after the last call, following up Monday. Keep stage as-is, next step: send check-in email.</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Acme — they're in budget review, decision expected May 15. Next step: check in May 14.
+Widget — actually closed lost, pulled out of budget process.</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Both of these I've been actively working — update next steps to "following up this week" for both, no stage changes.</div>
+
+        <div class="callout warning"><b>Reply in the thread, not as a new message.</b> Click "Reply" on Claude's original ping message so your update is linked to the right deals.</div>
+        <div class="callout info"><b>Don't stress about the format.</b> Claude doesn't require a specific template — just be clear about what you want updated. If it's ambiguous, Claude will make its best interpretation and you can see the changes in Salesforce.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_4" data-check="ch2_4" onchange="saveProgress()">
+          <label for="ch2_4">I know how to reply to a ping</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">5</div>
+        <span class="title">What happens at Around 4pm MDT — the reply processor</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>Every weekday at <b>Around 4pm MDT</b>, Claude runs a second automated task that:</p>
+        <ol>
+          <li>Reads all the replies that came in from reps since the morning ping</li>
+          <li>Matches each reply to the correct Salesforce opportunity</li>
+          <li>Updates the <b>Next Step</b> field with what you said</li>
+          <li>Changes the <b>Stage</b> if you mentioned one</li>
+          <li>Sends <b>Christina a summary</b> of all deals updated, what changed, and which reps didn't reply</li>
+        </ol>
+        <div class="callout success"><b>Your Salesforce record is updated automatically.</b> You don't need to log into Salesforce to record your update — your Slack reply does it for you.</div>
+        <div class="callout warning"><b>Deadline to reply: Around 4pm MDT same day.</b> Replies received after the afternoon processor runs will be picked up the following business day.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_5" data-check="ch2_5" onchange="saveProgress()">
+          <label for="ch2_5">I understand how Salesforce gets updated</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <button class="step-toggle" onclick="toggleStep(this)">
+        <div class="step-num">6</div>
+        <span class="title">Verify your update landed in Salesforce</span>
+        <span class="arrow">&#9654;</span>
+      </button>
+      <div class="step-content">
+        <p>After Around 4pm MDT on any day you replied to a ping, you can ask Claude to verify that your Salesforce updates went through.</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me the current Next Step and Stage for [opportunity name]</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">What's the latest on my open opportunities? Show me the Next Step for each one.</div>
+        <p>You should see the values you described in your Slack reply reflected in Salesforce. If something looks off, you can ask Claude to correct it directly:</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Update the Next Step on [opportunity name] to: [your updated text]</div>
+        <div class="callout info">Claude will always show you the before and after, and ask for your confirmation before saving any manual update.</div>
+        <div class="check-row">
+          <input type="checkbox" id="ch2_6" data-check="ch2_6" onchange="saveProgress()">
+          <label for="ch2_6">I know how to verify my updates</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ CHAPTER 3: FAQ ═══════════════ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">3</div>
+    <div>
+      <h2>Troubleshooting &amp; FAQ</h2>
+      <div class="chapter-desc">Common questions about the pinger and how to handle edge cases.</div>
+    </div>
+  </div>
+  <div class="chapter-body" style="padding-top:8px">
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">I didn't get a ping — does that mean I have no stalled deals?</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">Yes! If you didn't receive a Slack DM by ~8:15 AM, Claude found no stalled deals for you that day. Your pipeline is in good shape — or all your deals were recently updated. You'll hear from Claude again tomorrow if anything stalls out.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">I replied in Slack but my Salesforce update looks wrong</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">This can happen if the reply was ambiguous. Open a Cowork session and ask Claude to make the correction manually — just tell it the deal name and what the Next Step or Stage should say. Claude will confirm before saving. If this happens frequently, try to be more specific in your replies (e.g., "Next step: send proposal by Friday May 2" rather than "sending something soon").</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">I replied after Around 4pm MDT — will my update still get processed?</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">Yes, but not until the following business day. The afternoon processor only runs once per day at Around 4pm MDT. If you reply late, your update will be captured in the next day's run. If the update is time-sensitive, log it directly in Salesforce or ask Claude in a Cowork session to update it right now.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">I have a deal that's stalled intentionally — how do I stop it from pinging me every day?</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">Reply to the ping with context — for example, "This deal is on hold pending their Q3 budget review, no action until August." Claude will update the Next Step with this note, and since the record will now show a recent update, it won't flag as stalled for a while. You can also update the Next Step or Close Date directly in Salesforce to reflect reality.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">I'm not getting Slack messages from Claude at all</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">Check a few things: (1) Make sure your Salesforce plugin is enabled in Claude's settings. (2) Confirm you're connected — open a Cowork session and ask "Who am I in Salesforce?" (3) Check that Claude is allowed to DM you in Slack — look for a pending DM request from the Claude app. If none of these resolve it, reach out to Christina to check the pinger configuration.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-toggle" onclick="toggleFaq(this)">
+        <span class="faq-q">Can I ask Claude to show me my stalled deals on demand?</span>
+        <span class="faq-arrow">&#9654;</span>
+      </button>
+      <div class="faq-body">Absolutely. Open a Cowork session anytime and ask:
+        <div style="margin-top:8px">
+          <div class="prompt-box" onclick="copyPrompt(this)">Show me all my open opportunities that haven't been updated in over 14 days. Flag anything in SAO stage or later.</div>
+        </div>
+        This gives you the same view the pinger uses, without waiting for the Around 8am MDT run.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ LEADERBOARD ═══════════════ -->
+<div class="leaderboard-section" id="leaderboard">
+  <h2>Training Leaderboard</h2>
+  <p>See who's leading the charge. Complete all steps to reach 100%.</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#2d8a4e"></span> Completed</span>
+    <span><span class="dot" style="background:#f0ad4e"></span> In progress</span>
+    <span><span class="dot" style="background:#ccc"></span> Not started</span>
+  </div>
+
+  <div class="stars-section" id="starsSection">
+    <h3>&#11088; Stalled Deal Pinger All-Stars</h3>
+    <div id="starsContainer">
+      <p style="color:var(--text-light); font-size:14px;">Complete all steps to appear here! Be the first.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px;">Still On The Journey</h3>
+  <table class="progress-table" id="progressTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Progress</th>
+        <th>Status</th>
+        <th>Last active</th>
+      </tr>
+    </thead>
+    <tbody id="progressTableBody">
+      <tr><td colspan="4" style="color:var(--text-light);">Sign in above to see the leaderboard</td></tr>
+    </tbody>
+  </table>
+
+  <div class="lb-actions">
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="refreshLeaderboard()">Refresh</button>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Pelago Health &mdash; Salesforce + Claude Training &bull;
+  <a href="sfdc-training.html">Full Training Module</a> &bull;
+  <a href="https://support.claude.com/en/articles/13345190-get-started-with-cowork">Cowork Docs</a>
+</footer>
+
+<script>
+// ═══════════════ STATE ═══════════════
+const SHEET_ID = '1rSbzHi2DynM3N35LX-nCgRcACa0hieZFeiUsIeGkvqY';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG1k4xd4KEprSUBi0OmG9-BEPqHE_irTWHiRBrva0Pa9w-HdKhG7jUh2ZuqsJfgtUzVA/exec';
+const TOTAL_CHECKS = document.querySelectorAll('input[type="checkbox"][data-check]').length;
+let currentUser = null;
+
+// ═══════════════ ACCORDION TOGGLES ═══════════════
+function toggleStep(btn) {
+  const step = btn.closest('.step');
+  step.classList.toggle('open');
+}
+
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+
+// ═══════════════ PROMPT COPY ═══════════════
+function copyPrompt(el) {
+  const text = el.textContent.replace('Click to copy','').replace('Copied!','').trim();
+  navigator.clipboard.writeText(text);
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 1500);
+}
+
+// ═══════════════ PROGRESS TRACKING ═══════════════
+function updateProgressBar() {
+  const checked = document.querySelectorAll('input[type="checkbox"][data-check]:checked').length;
+  const pct = Math.round((checked / TOTAL_CHECKS) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressCount').textContent = checked + ' / ' + TOTAL_CHECKS;
+  const banner = document.getElementById('completionBanner');
+  if (checked === TOTAL_CHECKS) {
+    banner.classList.add('show');
+    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function saveProgress() {
+  updateProgressBar();
+  const data = {};
+  document.querySelectorAll('input[type="checkbox"][data-check]').forEach(cb => {
+    data[cb.dataset.check] = cb.checked;
+  });
+  localStorage.setItem('sdp_training_progress', JSON.stringify(data));
+  if (APPS_SCRIPT_URL && currentUser) syncToSheet();
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem('sdp_training_progress');
+  if (saved) {
+    const data = JSON.parse(saved);
+    Object.keys(data).forEach(key => {
+      const cb = document.querySelector(`[data-check="${key}"]`);
+      if (cb) cb.checked = data[key];
+    });
+  }
+  const email = localStorage.getItem('sdp_training_email');
+  if (email) document.getElementById('emailInput').value = email;
+  updateProgressBar();
+}
+
+// ═══════════════ SIGN IN ═══════════════
+function handleSignin() {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  currentUser = email;
+  const name = email.split('@')[0].split('.').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ');
+  const msg = document.getElementById('welcomeMsg');
+  msg.textContent = 'Welcome, ' + name + '! Your progress will be saved.';
+  msg.style.display = 'block';
+  localStorage.setItem('sdp_training_email', email);
+  saveProgress();
+}
+
+// ═══════════════ GOOGLE SHEETS SYNC ═══════════════
+async function syncToSheet() {
+  if (!APPS_SCRIPT_URL || !currentUser) return;
+  const checked = document.querySelectorAll('input[type="checkbox"][data-check]:checked').length;
+  const pct = Math.round((checked / TOTAL_CHECKS) * 100);
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ email: currentUser, progress: pct, checks: checked, total: TOTAL_CHECKS }),
+    });
+    // Refresh leaderboard after a short delay to let the sheet update
+    setTimeout(refreshLeaderboard, 1500);
+  } catch (e) { console.warn('Leaderboard sync failed', e); }
+}
+
+async function refreshLeaderboard() {
+  if (!APPS_SCRIPT_URL) return;
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return;
+
+    // ── Stars (100%) ──
+    const stars = rows.filter(r => r.progress === 100);
+    const starsContainer = document.getElementById('starsContainer');
+    if (stars.length === 0) {
+      starsContainer.innerHTML = '<p style="color:var(--text-light); font-size:14px;">Complete all steps to appear here! Be the first.</p>';
+    } else {
+      starsContainer.innerHTML = stars.map(r =>
+        `<div class="star-card">
+          <span style="font-size:20px;">&#11088;</span>
+          <span class="name">${r.name}</span>
+          <span class="badge">100% Complete</span>
+          <span class="date">${r.lastActive}</span>
+        </div>`
+      ).join('');
+    }
+
+    // ── Progress table (< 100%) ──
+    const inProgress = rows.filter(r => r.progress < 100);
+    const tbody = document.getElementById('progressTableBody');
+    if (inProgress.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-light);">Everyone has completed the training!</td></tr>';
+    } else {
+      tbody.innerHTML = inProgress.map(r => {
+        const statusClass = r.progress === 0 ? 'not-started' : 'progress';
+        const statusLabel = r.progress === 0 ? 'Not started' : 'In progress';
+        return `<tr>
+          <td>${r.name}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;background:#f0ebe0;border-radius:4px;height:6px;overflow:hidden;">
+                <div style="width:${r.progress}%;background:var(--accent);height:100%;border-radius:4px;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--text-light);white-space:nowrap;">${r.progress}%</span>
+            </div>
+          </td>
+          <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+          <td style="color:var(--text-light)">${r.lastActive}</td>
+        </tr>`;
+      }).join('');
+    }
+  } catch (e) { console.warn('Leaderboard refresh failed', e); }
+}
+
+function exportCSV() {
+  const rows = document.querySelectorAll('#progressTable tr');
+  let csv = '';
+  rows.forEach(r => {
+    const cells = r.querySelectorAll('th, td');
+    csv += Array.from(cells).map(c => '"' + c.textContent.trim() + '"').join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sdp-training-leaderboard.csv';
+  a.click();
+}
+
+// ═══════════════ INIT ═══════════════
+loadProgress();
+const savedEmail = localStorage.getItem('sdp_training_email');
+if (savedEmail) {
+  document.getElementById('emailInput').value = savedEmail;
+  currentUser = savedEmail;
+  const name = savedEmail.split('@')[0].split('.').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ');
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + name + '!';
+  document.getElementById('welcomeMsg').style.display = 'block';
+}
+refreshLeaderboard();
+</script>
+
+</body>
+</html>
