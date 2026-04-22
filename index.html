@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Salesforce + Claude — Pelago Health</title>
+<title>Claude Commercial Team Training Center — Pelago Health</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -29,7 +29,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
   border-bottom: 3px solid #e6cf3a;
 }
 .banner .subtitle { font-size: 14px; font-weight: 500; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
-.banner h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+.banner h1 { font-size: 34px; font-weight: 700; margin-bottom: 10px; }
 .banner p { color: var(--text-light); max-width: 520px; margin: 0 auto; font-size: 15px; }
 
 main { max-width: 700px; margin: 48px auto; padding: 0 24px 80px; }
@@ -50,15 +50,28 @@ main { max-width: 700px; margin: 48px auto; padding: 0 24px 80px; }
   width: 52px; height: 52px; border-radius: 12px; background: var(--pelago-yellow);
   display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;
 }
+.module-icon.status-icon { background: var(--success-bg); }
 .module-info { flex: 1; }
 .module-info h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
 .module-info p { font-size: 13px; color: var(--text-light); line-height: 1.5; }
-.module-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.module-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
 .module-tag {
   font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 10px;
   background: #f0ebe0; color: var(--text-light);
 }
 .module-tag.new { background: var(--success-bg); color: var(--success); }
+.module-tag.live {
+  background: var(--success-bg); color: var(--success);
+  display: flex; align-items: center; gap: 5px;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 .module-arrow { font-size: 18px; color: var(--accent); flex-shrink: 0; }
 
 .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
@@ -83,28 +96,14 @@ footer a { color: var(--accent); }
 <body>
 
 <div class="banner">
-  <div class="subtitle">Commercial Team</div>
-  <h1>Salesforce + Claude</h1>
-  <p>Your hub for training modules, guides, and resources for the Claude + Salesforce integration at Pelago Health.</p>
+  <div class="subtitle">Pelago Health</div>
+  <h1>Claude Commercial Team<br>Training Center</h1>
+  <p>Training modules, guides, and resources for using Claude on the commercial team.</p>
 </div>
 
 <main>
 
   <div class="section-label">Training Modules</div>
-
-  <a href="sfdc-training.html" class="module-card">
-    <div class="module-icon">&#128200;</div>
-    <div class="module-info">
-      <h3>Salesforce + Claude — Full Training</h3>
-      <p>Connect to Salesforce, learn the basics, and explore prompts and agents built for your team. Covers all roles from Client Services to RevOps.</p>
-      <div class="module-meta">
-        <span class="module-tag">All roles</span>
-        <span class="module-tag">~20 min</span>
-        <span class="module-tag">Leaderboard</span>
-      </div>
-    </div>
-    <div class="module-arrow">&#8594;</div>
-  </a>
 
   <a href="Stalled-Deal-Pinger-Training.html" class="module-card">
     <div class="module-icon">&#9889;</div>
@@ -121,18 +120,35 @@ footer a { color: var(--accent); }
     <div class="module-arrow">&#8594;</div>
   </a>
 
+  <a href="https://christinalrizzo.github.io/cowork-onboarding/" target="_blank" class="module-card">
+    <div class="module-icon">&#127891;</div>
+    <div class="module-info">
+      <h3>General Onboarding</h3>
+      <p>Get up and running with Claude at Pelago — install the desktop app, learn the basics, and discover what Claude can do for your day-to-day work.</p>
+      <div class="module-meta">
+        <span class="module-tag">All roles</span>
+        <span class="module-tag">~15 min</span>
+      </div>
+    </div>
+    <div class="module-arrow">&#8594;</div>
+  </a>
+
+  <a href="https://status.anthropic.com" target="_blank" class="module-card">
+    <div class="module-icon status-icon">&#128994;</div>
+    <div class="module-info">
+      <h3>Current Claude Status</h3>
+      <p>Check the live operational status of Claude and all Anthropic services. If Claude feels slow or unresponsive, check here first.</p>
+      <div class="module-meta">
+        <span class="module-tag live"><span class="live-dot"></span>Live</span>
+        <span class="module-tag">status.anthropic.com</span>
+      </div>
+    </div>
+    <div class="module-arrow">&#8594;</div>
+  </a>
+
   <hr class="divider">
 
   <div class="section-label">Resources</div>
-
-  <a href="Salesforce-MCP-Setup-Walkthrough.html" class="resource-card">
-    <span class="resource-icon">&#128196;</span>
-    <div class="resource-info">
-      <h4>Setup Walkthrough</h4>
-      <p>Step-by-step guide for connecting the Salesforce MCP integration</p>
-    </div>
-    <span class="resource-arrow">&#8594;</span>
-  </a>
 
   <a href="https://support.claude.com/en/articles/13345190-get-started-with-cowork" target="_blank" class="resource-card">
     <span class="resource-icon">&#128218;</span>
@@ -143,19 +159,10 @@ footer a { color: var(--accent); }
     <span class="resource-arrow">&#8594;</span>
   </a>
 
-  <a href="https://christinalrizzo.github.io/cowork-onboarding/" target="_blank" class="resource-card">
-    <span class="resource-icon">&#127891;</span>
-    <div class="resource-info">
-      <h4>General Onboarding</h4>
-      <p>Pelago-specific Claude onboarding guide for new users</p>
-    </div>
-    <span class="resource-arrow">&#8594;</span>
-  </a>
-
 </main>
 
 <footer>
-  Pelago Health &mdash; Salesforce + Claude &bull;
+  Pelago Health &mdash; Claude Commercial Team Training Center &bull;
   Questions? Reach out to <a href="mailto:christina.rizzo@pelagohealth.com">Christina</a>
 </footer>
 
