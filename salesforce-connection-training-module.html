@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connecting Salesforce to Claude — Pelago Health</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Roboto+Slab:wght@400;500;600;700&display=swap');
+
+  :root {
+    --pelago-yellow:  #FAE355;
+    --jet-black:      #212633;
+    --white:          #FFFFFF;
+    --maroon:         #722F49;
+    --moss-green:     #4D6525;
+    --cerulean:       #A4BDFF;
+    --punch-pink:     #EEBCFF;
+    --tea-green:      #DDF1C4;
+    --mist-blue:      #E8EEFF;
+    --tan:            #BDA98C;
+    --peach:          #FCD3BF;
+    --cream:          #FFF4DC;
+    --bg:             var(--cream);
+    --surface:        var(--white);
+    --border:         #e0d8c8;
+    --border-light:   #ede6d6;
+    --accent:         var(--maroon);
+    --accent-light:   #8e3d5b;
+    --accent-bg:      rgba(114,47,73,.06);
+    --green:          var(--moss-green);
+    --green-bg:       rgba(77,101,37,.07);
+    --amber:          #c9a020;
+    --amber-bg:       rgba(250,227,85,.15);
+    --text:           var(--jet-black);
+    --text-dim:       #5c6070;
+    --text-bright:    var(--jet-black);
+    --radius:         16px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: 'Roboto Slab', 'DM Sans', serif; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 80px 24px 60px; background: var(--pelago-yellow); position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%); width: 140%; height: 160px; background: var(--bg); border-radius: 50% 50% 0 0; }
+  .hero-badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--maroon); background: rgba(255,255,255,.55); border: 1px solid rgba(114,47,73,.15); padding: 6px 16px; border-radius: 100px; margin-bottom: 20px; position: relative; z-index: 1; }
+  .hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 700; color: var(--jet-black); letter-spacing: -0.02em; margin-bottom: 16px; position: relative; z-index: 1; }
+  .hero p { font-size: 18px; color: var(--jet-black); opacity: .7; max-width: 560px; margin: 0 auto; position: relative; z-index: 1; }
+  .hero-leaderboard-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 10px 22px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); border: 2px solid var(--maroon); border-radius: 999px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--maroon); cursor: pointer; transition: all .2s; }
+  .hero-leaderboard-btn:hover { background: var(--maroon); color: #fff; box-shadow: 0 4px 16px rgba(114,47,73,.25); transform: translateY(-1px); }
+  .hero-leaderboard-btn svg { width: 16px; height: 16px; }
+  .pelago-logo { margin-bottom: 24px; position: relative; z-index: 1; }
+  .pelago-logo img { height: 40px; width: auto; }
+  .oval-accent { position: absolute; border-radius: 50%; opacity: .08; pointer-events: none; }
+  .hero .oval-1 { width: 300px; height: 200px; background: var(--maroon); top: -40px; right: -60px; transform: rotate(-15deg); }
+  .hero .oval-2 { width: 200px; height: 140px; background: var(--moss-green); bottom: 20px; left: -40px; transform: rotate(10deg); }
+
+  /* All-Star banner */
+  .allstar-banner { background: linear-gradient(135deg, var(--tea-green), rgba(250,227,85,.2)); border-bottom: 2px solid rgba(77,101,37,.15); }
+  .allstar-banner-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 18px; padding: 24px 32px; }
+  .allstar-banner-trophy { font-size: 42px; flex-shrink: 0; }
+  .allstar-banner h2 { font-family: 'Roboto Slab', serif; font-size: 20px; font-weight: 700; color: var(--moss-green); margin-bottom: 4px; }
+  .allstar-banner p { font-size: 14px; color: var(--text-dim); }
+
+  /* Progress bar */
+  .progress-wrap { position: sticky; top: 0; z-index: 100; background: rgba(255,244,220,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .progress-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 6px; padding: 14px 0; }
+  .progress-step { flex: 1; height: 5px; border-radius: 100px; background: var(--border); transition: background .4s; cursor: pointer; }
+  .progress-step.done { background: var(--moss-green); }
+  .progress-step.active { background: var(--pelago-yellow); box-shadow: 0 0 8px rgba(250,227,85,.6); }
+  .progress-label { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-left: 12px; white-space: nowrap; min-width: 60px; text-align: right; }
+
+  /* Container */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px 120px; }
+
+  /* Chapter */
+  .chapter { margin-top: 64px; scroll-margin-top: 80px; }
+  .chapter-header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .chapter-number { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Roboto Slab', serif; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+  .ch-maroon .chapter-number  { background: var(--accent-bg); color: var(--maroon); border: 2px solid rgba(114,47,73,.2); }
+  .ch-green .chapter-number   { background: var(--green-bg); color: var(--moss-green); border: 2px solid rgba(77,101,37,.2); }
+  .ch-yellow .chapter-number  { background: var(--amber-bg); color: var(--amber); border: 2px solid rgba(250,227,85,.4); }
+  .chapter-header h2 { font-size: 26px; font-weight: 700; color: var(--text-bright); }
+  .chapter-intro { color: var(--text-dim); margin-bottom: 32px; font-size: 15px; max-width: 680px; }
+  .chapter-checklist { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-top: 20px; }
+  .chapter-checklist h4 { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 12px; }
+  .ch-maroon .chapter-checklist h4 { color: var(--maroon); }
+  .ch-green .chapter-checklist h4 { color: var(--moss-green); }
+  .ch-yellow .chapter-checklist h4 { color: var(--amber); }
+
+  /* Step cards */
+  .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: border-color .25s, box-shadow .25s; }
+  .step-card:hover { border-color: var(--tan); box-shadow: 0 2px 12px rgba(33,38,51,.06); }
+  .step-toggle { display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; user-select: none; width: 100%; background: none; border: none; color: inherit; font: inherit; text-align: left; }
+  .step-num { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text-dim); flex-shrink: 0; transition: all .25s; }
+  .step-card.open .step-num, .step-card.completed .step-num { border-color: var(--maroon); color: var(--white); background: var(--maroon); }
+  .step-card.step-done .step-num { border-color: var(--moss-green); color: var(--white); background: var(--moss-green); }
+  .step-card.step-done .step-num span { display: none; }
+  .step-card.step-done .step-num::after { content: '\2713'; font-size: 16px; font-weight: 700; }
+  .step-card.step-done .step-title { color: var(--moss-green); }
+  .step-title { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-bright); }
+  .step-arrow { font-size: 18px; color: var(--tan); transition: transform .25s; }
+  .step-card.open .step-arrow { transform: rotate(180deg); color: var(--maroon); }
+  .step-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .3s; padding: 0 20px; }
+  .step-card.open .step-body { max-height: 2000px; padding: 0 20px 20px; }
+  .step-body p { margin-bottom: 12px; color: var(--text); font-size: 14px; }
+  .step-body .action-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--maroon); margin-bottom: 6px; }
+  .step-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; background: var(--green-bg); border-radius: 10px; border: 1px solid rgba(77,101,37,.12); }
+  .step-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--moss-green); cursor: pointer; flex-shrink: 0; }
+  .step-check label { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--moss-green); }
+
+  /* Agent cards */
+  .agent-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: border-color .25s, box-shadow .25s; }
+  .agent-card:hover { border-color: var(--tan); box-shadow: 0 2px 12px rgba(33,38,51,.06); }
+  .agent-toggle { display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; user-select: none; width: 100%; background: none; border: none; color: inherit; font: inherit; text-align: left; }
+  .agent-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .agent-title { flex: 1; }
+  .agent-title strong { display: block; font-size: 15px; font-weight: 600; color: var(--text-bright); }
+  .agent-title span { font-size: 13px; color: var(--text-dim); }
+  .agent-arrow { font-size: 18px; color: var(--tan); transition: transform .25s; }
+  .agent-card.open .agent-arrow { transform: rotate(180deg); color: var(--maroon); }
+  .agent-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .3s; padding: 0 20px; }
+  .agent-card.open .agent-body { max-height: 3000px; padding: 0 20px 20px; }
+  .agent-body p { margin-bottom: 12px; font-size: 14px; }
+  .agent-body h4 { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--maroon); margin: 16px 0 6px; }
+  .agent-body h4:first-child { margin-top: 0; }
+  .agent-card.step-done { border-color: rgba(77,101,37,.25); }
+  .agent-card.step-done .agent-icon { background: var(--moss-green) !important; border-color: var(--moss-green) !important; position: relative; font-size: 0; }
+  .agent-card.step-done .agent-icon::after { content: '\2713'; font-size: 18px; font-weight: 700; color: var(--white); }
+  .agent-card.step-done .agent-title strong { color: var(--moss-green); }
+
+  /* Numbered list */
+  .step-list { counter-reset: steps; padding: 0; list-style: none; }
+  .step-list li { counter-increment: steps; padding: 6px 0 6px 28px; position: relative; font-size: 14px; }
+  .step-list li::before { content: counter(steps); position: absolute; left: 0; top: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-bg); color: var(--maroon); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* Prereq tags */
+  .prereq-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
+  .prereq-tag.none { background: rgba(189,169,140,.15); color: #7a6d5a; }
+  .prereq-tag.sfdc { background: rgba(114,47,73,.08); color: var(--maroon); }
+
+  /* Visual cues */
+  .visual-cue { background: var(--mist-blue); border: 1px solid rgba(164,189,255,.3); border-radius: 12px; padding: 14px 16px; margin: 12px 0; font-size: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .visual-cue .icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .visual-cue.tip { background: var(--tea-green); border-color: rgba(77,101,37,.2); }
+  .visual-cue.warn { background: var(--cream); border-color: rgba(189,169,140,.4); }
+  .visual-cue code { background: rgba(33,38,51,.06); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Consolas, monospace; }
+
+  /* Nav path */
+  .nav-path { display: inline-flex; align-items: center; gap: 6px; background: rgba(33,38,51,.04); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--text); margin: 8px 0; font-family: 'SF Mono', Consolas, monospace; }
+  .nav-path .sep { color: var(--tan); }
+
+  /* Prompt box */
+  .prompt-box { background: var(--jet-black); color: #e8eaef; border-radius: 10px; padding: 14px 18px; margin: 10px 0; font-size: 14px; line-height: 1.6; font-family: 'DM Sans', system-ui, sans-serif; position: relative; cursor: pointer; transition: box-shadow .2s; border: 1px solid rgba(255,255,255,.06); }
+  .prompt-box:hover { box-shadow: 0 2px 12px rgba(33,38,51,.2); }
+  .prompt-box::after { content: 'Click to copy'; position: absolute; top: 8px; right: 12px; font-size: 11px; font-weight: 600; color: var(--tan); opacity: 0; transition: opacity .2s; }
+  .prompt-box:hover::after { opacity: 1; }
+  .prompt-box.copied::after { content: 'Copied!'; color: var(--tea-green); opacity: 1; }
+
+  /* Checklist card */
+  .checklist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-top: 48px; }
+  .checklist-card h3 { font-size: 20px; font-weight: 700; color: var(--text-bright); margin-bottom: 20px; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+  .check-item:last-child { border-bottom: none; }
+  .check-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--moss-green); cursor: pointer; }
+  .check-item label { cursor: pointer; flex: 1; }
+  .check-item.checked label { color: var(--text-dim); text-decoration: line-through; }
+
+  /* Email checker */
+  .email-checker { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 14px; }
+  .email-checker p { font-size: 14px; margin-bottom: 14px; }
+  .email-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .email-form input { flex: 1; min-width: 240px; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; transition: border-color .2s; }
+  .email-form input:focus { border-color: var(--maroon); }
+  .email-form input::placeholder { color: var(--tan); }
+  .email-form button { padding: 10px 20px; border: none; border-radius: 10px; background: var(--maroon); color: var(--white); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .2s; white-space: nowrap; }
+  .email-form button:hover { background: var(--accent-light); }
+  .email-result { margin-top: 14px; padding: 14px 16px; border-radius: 10px; font-size: 14px; display: none; }
+  .email-result.success { display: block; background: var(--tea-green); border: 1px solid rgba(77,101,37,.2); }
+  .email-result.error { display: block; background: rgba(252,211,191,.4); border: 1px solid rgba(189,169,140,.4); }
+  .email-result strong { display: block; margin-bottom: 4px; }
+  .verify-btn { display: inline-block; margin-top: 12px; padding: 10px 22px; border-radius: 10px; background: var(--pelago-yellow); color: var(--jet-black); font-size: 14px; font-weight: 700; font-family: inherit; text-decoration: none; transition: box-shadow .2s, transform .15s; }
+  .verify-btn:hover { box-shadow: 0 4px 16px rgba(250,227,85,.4); transform: translateY(-1px); }
+
+  /* Leaderboard */
+  .admin-panel { background: var(--surface); border: 2px solid var(--maroon); border-radius: var(--radius); padding: 24px; margin: 32px 0; }
+  .admin-panel h3 { font-family: 'Roboto Slab', serif; font-size: 18px; font-weight: 700; color: var(--maroon); margin-bottom: 6px; }
+  .admin-panel .admin-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .admin-table th { text-align: left; padding: 8px 12px; background: var(--accent-bg); color: var(--maroon); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; border-bottom: 2px solid var(--border); }
+  .admin-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .admin-status.complete { background: var(--tea-green); color: var(--moss-green); }
+  .admin-status.in-progress { background: var(--amber-bg); color: var(--amber); }
+  .admin-status.not-started { background: rgba(33,38,51,.06); color: var(--text-dim); }
+  .progress-mini { width: 100%; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .progress-mini-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .chapter-pips { display: flex; gap: 4px; margin-top: 4px; }
+  .chapter-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .chapter-pip.done { background: var(--moss-green); }
+  .chapter-pip.partial { background: var(--pelago-yellow); }
+  .admin-count { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .admin-count .stat { background: var(--bg); border-radius: 10px; padding: 12px 18px; text-align: center; min-width: 100px; }
+  .admin-count .stat-num { font-size: 28px; font-weight: 800; color: var(--maroon); display: block; }
+  .admin-count .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .admin-export-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .2s; margin-left: 8px; }
+  .admin-export-btn:hover { background: var(--tea-green); }
+  .allstars-section { margin-bottom: 28px; }
+  .allstars-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 14px 18px; background: linear-gradient(135deg, rgba(250,227,85,.15), rgba(77,101,37,.08)); border-radius: 12px; border: 1px solid rgba(77,101,37,.15); }
+  .allstars-header .star-icon { font-size: 24px; }
+  .allstars-header h4 { font-family: 'Roboto Slab', serif; font-size: 16px; font-weight: 700; color: var(--moss-green); margin: 0; }
+  .allstars-header .allstar-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--moss-green); background: var(--tea-green); padding: 3px 10px; border-radius: 100px; }
+  .allstars-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .allstar-card { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid rgba(77,101,37,.12); border-radius: 12px; transition: box-shadow .2s; }
+  .allstar-card:hover { box-shadow: 0 2px 12px rgba(77,101,37,.1); }
+  .allstar-medal { font-size: 22px; flex-shrink: 0; }
+  .allstar-name { font-weight: 700; font-size: 14px; color: var(--jet-black); }
+  .allstar-date { font-size: 11px; color: var(--text-dim); }
+  .allstar-badge { display: inline-block; margin-top: 2px; font-size: 10px; font-weight: 700; color: var(--moss-green); background: var(--tea-green); padding: 1px 6px; border-radius: 4px; letter-spacing: .02em; }
+  .inprogress-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .inprogress-header h4 { font-family: 'Roboto Slab', serif; font-size: 14px; font-weight: 700; color: var(--text-dim); margin: 0; }
+
+  /* Confetti & celebration */
+  .confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+  .celebration-banner { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: var(--pelago-yellow); color: var(--jet-black); padding: 32px 48px; border-radius: 20px; text-align: center; z-index: 10000; box-shadow: 0 20px 60px rgba(33,38,51,.25); animation: popIn .5s ease forwards; }
+  .celebration-banner h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .celebration-banner p { font-size: 16px; opacity: .7; }
+  @keyframes popIn { 0% { transform: translate(-50%,-50%) scale(0); } 70% { transform: translate(-50%,-50%) scale(1.05); } 100% { transform: translate(-50%,-50%) scale(1); } }
+
+  /* Floating help button */
+  .help-fab { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--maroon); color: #fff; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 16px rgba(114,47,73,.3); transition: all .2s; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .help-fab:hover { background: var(--accent-light); transform: scale(1.08); box-shadow: 0 6px 24px rgba(114,47,73,.4); }
+
+  /* Feedback modal */
+  .feedback-overlay { display: none; position: fixed; inset: 0; background: rgba(33,38,51,.5); z-index: 1001; align-items: center; justify-content: center; }
+  .feedback-overlay.open { display: flex; }
+  .feedback-modal { background: var(--surface); border-radius: var(--radius); padding: 28px; max-width: 440px; width: 90%; position: relative; }
+  .feedback-modal h3 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .fb-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
+  .feedback-modal label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin-bottom: 5px; margin-top: 12px; }
+  .feedback-modal input, .feedback-modal textarea { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; transition: border-color .2s; }
+  .feedback-modal input:focus, .feedback-modal textarea:focus { border-color: var(--maroon); }
+  .feedback-modal textarea { min-height: 90px; resize: vertical; margin-bottom: 16px; }
+  .feedback-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .fb-cancel { padding: 10px 20px; border: 1px solid var(--border); border-radius: 10px; background: none; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; color: var(--text-dim); }
+  .fb-send { padding: 10px 20px; border-radius: 10px; background: var(--maroon); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; border: none; color: #fff; }
+  .fb-send:hover { background: var(--accent-light); }
+  .fb-close { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 20px; color: var(--text-dim); cursor: pointer; line-height: 1; }
+  .fb-close:hover { color: var(--maroon); }
+  .fb-success { display: none; text-align: center; padding: 20px 0; }
+  .fb-success .fb-check { font-size: 40px; margin-bottom: 8px; }
+  .fb-success p { font-size: 14px; color: var(--text-dim); }
+  .fb-success strong { color: var(--maroon); display: block; font-size: 16px; margin-bottom: 4px; }
+
+  @media (max-width: 600px) { .hero { padding: 60px 16px 40px; } .chapter-header h2 { font-size: 22px; } .container { padding: 0 16px 80px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="oval-accent oval-1"></div>
+  <div class="oval-accent oval-2"></div>
+  <div class="pelago-logo">
+    <img src="https://res.cloudinary.com/brandpad/image/upload/c_scale,dpr_auto,f_auto,w_1792/v1734550216/17729/frame_f7f6ad44" alt="Pelago">
+  </div>
+  <div class="hero-badge">Salesforce + Claude Training</div>
+  <h1>Connecting Salesforce<br>to Claude</h1>
+  <p>A step-by-step guide to getting the Salesforce integration up and running in your Claude workspace.</p>
+  <button class="hero-leaderboard-btn" onclick="document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+    View Leaderboard
+  </button>
+</header>
+
+<div class="allstar-banner" id="allstarBanner" style="display:none;">
+  <div class="allstar-banner-inner">
+    <span class="allstar-banner-trophy">&#127942;</span>
+    <div>
+      <h2>You're a Salesforce + Claude All-Star! 🎉</h2>
+      <p>You've completed the full Salesforce connection training. Your Pelago data is now just a conversation away.</p>
+    </div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="progress-step active" data-chapter="1"></div>
+    <div class="progress-step" data-chapter="2"></div>
+    <div class="progress-step" data-chapter="3"></div>
+    <div class="progress-label" id="progressLabel">0 / 9</div>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- BEFORE YOU BEGIN -->
+  <section class="chapter ch-maroon" id="before-you-begin" style="margin-top:40px;">
+    <div class="chapter-header">
+      <div class="chapter-number" style="background:var(--amber-bg);color:var(--amber);border:2px solid rgba(250,227,85,.4);font-size:16px;">&#9733;</div>
+      <h2>Before You Begin</h2>
+    </div>
+    <p class="chapter-intro">Enter your Pelago email to save your progress and appear on the team leaderboard. Your progress is automatically saved as you work through each step.</p>
+    <div class="email-checker" id="emailChecker">
+      <p>Enter your Pelago work email to track your progress and let Christina know you've completed this training.</p>
+      <div class="email-form">
+        <input type="email" id="emailInput" placeholder="yourname@pelagohealth.com" onkeydown="if(event.key==='Enter')checkEmail()">
+        <button onclick="checkEmail()">Save my spot</button>
+      </div>
+      <div class="email-result" id="emailResult"></div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 1: Connect Salesforce -->
+  <section class="chapter ch-maroon" id="ch1">
+    <div class="chapter-header">
+      <div class="chapter-number">1</div>
+      <h2>Connect Salesforce to Claude</h2>
+    </div>
+    <p class="chapter-intro">In this chapter you'll add the Salesforce connection inside Claude's Cowork mode and authorize it to access your Pelago Salesforce org. This only needs to be done once — after setup, the connection persists across sessions.</p>
+
+    <!-- Step 1 -->
+    <div class="step-card" data-step="1">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>1</span></div>
+        <div class="step-title">Open the Claude desktop app and sign in</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>The Salesforce integration lives inside <strong>Claude's Cowork mode</strong> — the desktop app, not the browser version at claude.ai. Make sure you have the Claude desktop app installed and are signed in with your Pelago account.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div>If you don't have the Claude desktop app yet, download it from <strong>claude.ai/download</strong>. Sign in with your <code>@pelagohealth.com</code> email.</div>
+        </div>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div>The Salesforce connection is only available in the <strong>desktop app with Cowork mode</strong>. It won't appear in the browser version of Claude.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c1" onchange="updateChecklist()">
+          <label for="c1">I have the Claude desktop app open and I'm signed in</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card" data-step="2">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>2</span></div>
+        <div class="step-title">Open a Cowork session</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Cowork mode is Claude's workspace for managing files and automated tasks. Connectors — like Salesforce — live here and give Claude access to your external tools and data.</p>
+        <ol class="step-list">
+          <li>Open the Claude desktop app</li>
+          <li>Look for the <strong>Cowork</strong> button or tab in the sidebar or home screen</li>
+          <li>Click it to start a Cowork session — you'll land in a chat interface with access to your connectors</li>
+        </ol>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div>You'll know you're in Cowork mode when you see the workspace folder panel and the connectors panel along the side of the chat interface.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c2" onchange="updateChecklist()">
+          <label for="c2">I've opened a Cowork session</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card" data-step="3">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>3</span></div>
+        <div class="step-title">Find and add the Salesforce connection</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Connections (also called connectors) are what give Claude access to external services like Salesforce. Adding the Salesforce connection lets Claude query your Pelago org directly from the chat.</p>
+        <ol class="step-list">
+          <li>In your Cowork session, look for the <strong>connectors panel</strong> (usually on the left sidebar or accessible via a plug/link icon)</li>
+          <li>Search for <strong>"Salesforce"</strong></li>
+          <li>Click <strong>Add</strong> or <strong>Connect</strong> next to the Salesforce connector</li>
+          <li>Wait a moment — this usually takes just a few seconds</li>
+        </ol>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div>If you already see Salesforce listed as a connected connector, you can skip ahead to the next step.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c3" onchange="updateChecklist()">
+          <label for="c3">The Salesforce connection is added in my Cowork session</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card" data-step="4">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>4</span></div>
+        <div class="step-title">Authorize your Salesforce account</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Once the Salesforce connector is added, you need to authorize it with your Pelago Salesforce account. This is a one-time step using OAuth — the same login flow you'd use for any other Salesforce integration.</p>
+        <ol class="step-list">
+          <li>Click <strong>Connect</strong> or <strong>Authorize</strong> next to the Salesforce connector</li>
+          <li>A Salesforce login window will open in your browser</li>
+          <li>Sign in with your Pelago Salesforce credentials (your <code>@pelagohealth.com</code> email)</li>
+          <li>Click <strong>Allow</strong> when prompted to grant Claude access to your Salesforce data</li>
+          <li>Return to Claude — you should see a green "Connected" status next to the Salesforce connector</li>
+        </ol>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div>Make sure you're logging into <strong>Pelago's production Salesforce org</strong>, not a sandbox. If you're unsure which org to use, check with Christina before authorizing.</div>
+        </div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div>Claude accesses Salesforce using <strong>your own credentials</strong>, so it will only be able to see and do what you personally have permission to in Salesforce. No extra permissions are granted.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c4" onchange="updateChecklist()">
+          <label for="c4">I've authorized Salesforce and see a "Connected" status</label>
+        </div>
+      </div>
+    </div>
+
+    <input type="checkbox" id="c0" onchange="updateChecklist()" style="display:none;">
+  </section>
+
+  <!-- CHAPTER 2: Verify the Connection -->
+  <section class="chapter ch-green" id="ch2">
+    <div class="chapter-header">
+      <div class="chapter-number">2</div>
+      <h2>Verify & Understand Your Access</h2>
+    </div>
+    <p class="chapter-intro">Before diving into real queries, let's confirm the connection is working and make sure you understand what Claude can — and can't — do with your Salesforce data.</p>
+
+    <!-- Step 5 -->
+    <div class="step-card" data-step="5">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>5</span></div>
+        <div class="step-title">Run a quick verification query</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>The fastest way to confirm your connection is working is to ask Claude a simple question that requires it to access Salesforce. Try one of the prompts below — if Claude returns real data from your org, you're all set.</p>
+        <div class="action-label">Try this prompt</div>
+        <div class="prompt-box" onclick="copyPrompt(this)">Who am I connected to in Salesforce? Show me my user info.</div>
+        <p style="margin-top:12px;">Or if you want to test with real records:</p>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me the 5 most recently modified accounts in Salesforce.</div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div>If Claude returns your name, email, and Salesforce user ID — or a list of accounts — the connection is confirmed and working correctly.</div>
+        </div>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div>If Claude says it can't access Salesforce or returns an error, go back to Step 4 and re-authorize. If the problem persists, use the <strong>?</strong> button at the bottom of this page to message Christina.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c5" onchange="updateChecklist()">
+          <label for="c5">I ran a verification query and got back real Salesforce data</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step-card" data-step="6">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>6</span></div>
+        <div class="step-title">Understand what Claude can access</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Claude's Salesforce connection gives it the ability to look up and edit records in your org — but it has important limitations. Read this carefully before you start using it with real data.</p>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Claude CAN:</strong> Look up Accounts, Contacts, and Opportunities. Search and summarize data across multiple records. Edit field values on existing records — for example, adding or removing a partner on an opportunity, updating a stage, or clearing a field value.</div>
+        </div>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div><strong>Claude CANNOT create new records.</strong> It cannot create a new Account, Opportunity, or Contact — even if you ask it to. If you need to create a record, do it directly in Salesforce.</div>
+        </div>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div><strong>Claude CANNOT delete records.</strong> It cannot delete an Account, Opportunity, or Contact as a whole. However, it <em>can</em> clear or remove information <em>on</em> a record — for example, removing a partner from an opportunity or blanking out a field value.</div>
+        </div>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div>Claude works best when you give it <strong>specific context</strong> — like an account name, opportunity name, or date range. The more specific your question, the more useful the answer.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c6" onchange="updateChecklist()">
+          <label for="c6">I understand what Claude can and can't access in Salesforce</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 3: Practice Queries -->
+  <section class="chapter ch-yellow" id="ch3">
+    <div class="chapter-header">
+      <div class="chapter-number">3</div>
+      <h2>Try It Out</h2>
+    </div>
+    <p class="chapter-intro">Now that you're connected, try at least <strong>2 of these 3 practice queries</strong> in your Claude session. Each one demonstrates a different type of thing you can do with the Salesforce integration. Click a card to see instructions and a ready-to-use prompt.</p>
+
+    <!-- Agent Card 1: Look up an Account -->
+    <div class="agent-card" data-step="7">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(114,47,73,.08);border:1px solid rgba(114,47,73,.2);">🏢</div>
+        <div class="agent-title">
+          <strong>Look Up an Account</strong>
+          <span>Pull key details on any account in your org</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What this does</h4>
+        <p>Ask Claude to retrieve details about a specific account — including key contacts, open opportunities, and any recent activity. Great for quick pre-call research.</p>
+        <h4>How to use it</h4>
+        <ol class="step-list">
+          <li>Copy the prompt below (click it)</li>
+          <li>Replace <em>[Account Name]</em> with a real account name from Pelago's Salesforce org</li>
+          <li>Paste it into your Claude Cowork chat and hit Enter</li>
+        </ol>
+        <h4>Prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Look up the account [Account Name] in Salesforce and give me a quick summary — key contacts, any open opportunities, and the current account status.</div>
+        <div class="visual-cue tip">
+          <span class="icon">💡</span>
+          <div><strong>Tip:</strong> You don't need to know the exact account name — Claude can search by partial name too. Try "Find accounts with 'Health' in the name" if you're not sure what to look up.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c7" onchange="updateChecklist()">
+          <label for="c7">I tried this ✓</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Card 2: Check Open Opportunities -->
+    <div class="agent-card" data-step="8">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(77,101,37,.08);border:1px solid rgba(77,101,37,.2);">📊</div>
+        <div class="agent-title">
+          <strong>Check Open Opportunities</strong>
+          <span>Get a snapshot of your current pipeline</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What this does</h4>
+        <p>Ask Claude to pull your open opportunities and summarize the pipeline — by stage, close date, or value. Useful for pipeline reviews and forecasting prep without digging through Salesforce reports.</p>
+        <h4>How to use it</h4>
+        <ol class="step-list">
+          <li>Copy the prompt below</li>
+          <li>Paste it into your Claude Cowork chat</li>
+          <li>Review the output — Claude will show you a structured view of your pipeline</li>
+        </ol>
+        <h4>Prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Show me my open opportunities in Salesforce. Summarize them by stage and highlight any that are closing within the next 30 days.</div>
+        <div class="visual-cue tip">
+          <span class="icon">💡</span>
+          <div><strong>Tip:</strong> You can ask Claude to filter further — e.g. "Show me only opportunities over $50K" or "Which of these are stuck in the same stage for more than 60 days?"</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c8" onchange="updateChecklist()">
+          <label for="c8">I tried this ✓</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Card 3: Find a Contact -->
+    <div class="agent-card" data-step="9">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(164,189,255,.12);border:1px solid rgba(164,189,255,.3);">👤</div>
+        <div class="agent-title">
+          <strong>Find a Contact</strong>
+          <span>Search for a person and see their linked records</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What this does</h4>
+        <p>Look up a specific contact by name or company, and have Claude summarize their role, account relationship, and any recent opportunities they're involved in. Useful before outreach or meetings.</p>
+        <h4>How to use it</h4>
+        <ol class="step-list">
+          <li>Copy the prompt below</li>
+          <li>Replace <em>[Contact Name or Company]</em> with a real person or organization</li>
+          <li>Paste it into Claude and review the response</li>
+        </ol>
+        <h4>Prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Find the contact [Contact Name or Company] in Salesforce. What account are they linked to, what's their title, and are there any open opportunities associated with them?</div>
+        <div class="visual-cue tip">
+          <span class="icon">💡</span>
+          <div><strong>Tip:</strong> If you don't have a specific name in mind, try "Find all contacts at [Company Name]" to browse who's in the org from a specific account.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c9" onchange="updateChecklist()">
+          <label for="c9">I tried this ✓</label>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+<div class="celebration-banner" id="celebrationBanner">
+  <button onclick="document.getElementById('celebrationBanner').style.display='none'" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--jet-black);opacity:.5;">&times;</button>
+  <h2>🎉 You're Connected!</h2>
+  <p>Salesforce + Claude is ready to go. Your Pelago data is now just a conversation away.</p>
+  <a href="#adminPanel" onclick="document.getElementById('celebrationBanner').style.display='none';setTimeout(function(){document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'})},100)" style="display:inline-block;margin-top:14px;padding:10px 28px;background:var(--jet-black);color:var(--pelago-yellow);border-radius:100px;font-weight:700;font-size:14px;text-decoration:none;letter-spacing:.02em;">View Leaderboard &darr;</a>
+</div>
+
+<div class="container">
+  <div class="admin-panel" id="adminPanel">
+    <h3>🏆 Team Leaderboard</h3>
+    <p class="admin-desc">Track who on the team has completed the Salesforce + Claude connection training.</p>
+    <div class="admin-count" id="adminStats">
+      <div class="stat"><span class="stat-num" id="statTotal">0</span><span class="stat-label">Checked in</span></div>
+      <div class="stat"><span class="stat-num" id="statCompleted">0</span><span class="stat-label">Completed</span></div>
+      <div class="stat"><span class="stat-num" id="statInProgress">0</span><span class="stat-label">In progress</span></div>
+      <div class="stat"><span class="stat-num" id="statNotStarted">0</span><span class="stat-label">Not started</span></div>
+    </div>
+    <div class="allstars-section" id="allstarsSection" style="display:none;">
+      <div class="allstars-header">
+        <span class="star-icon">&#127942;</span>
+        <h4>All-Stars</h4>
+        <span class="allstar-count" id="allstarCount">0</span>
+      </div>
+      <div class="allstars-grid" id="allstarsGrid"></div>
+    </div>
+    <div class="inprogress-header" id="inprogressHeader" style="display:none;">
+      <h4>Still On The Journey</h4>
+    </div>
+    <table class="admin-table" id="adminTable">
+      <thead>
+        <tr><th style="width:40px;text-align:center;">#</th><th>Name</th><th>Progress</th><th>Chapters</th><th>Status</th><th>Last active</th></tr>
+      </thead>
+      <tbody id="adminBody">
+        <tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">No one has checked in yet. Be the first!</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;align-items:center;margin-top:14px;">
+      <button class="admin-export-btn" onclick="exportCSV()">Export CSV</button>
+      <button class="admin-export-btn" onclick="loadFromSheet()">Refresh from Sheet</button>
+    </div>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:40px 24px;color:var(--text-dim);font-size:13px;border-top:1px solid var(--border);background:var(--white);">
+  <p>Pelago Health &bull; Salesforce + Claude Training &bull; <a href="mailto:christina.rizzo@pelagohealth.com" style="color:var(--maroon);text-decoration:none;font-weight:600;">Questions? Contact Christina</a></p>
+</footer>
+
+<script>
+  const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxEmzDW2EI25u1iwVee45UPbqkB5qIOmS0KKNDKXjoR9mu6R-kTC4Zif6j15A5efdlb/exec';
+  const EMAIL_DOMAIN      = '@pelagohealth.com';
+  const STORAGE_PREFIX    = 'pelago_sfdc_connect_';
+
+  const CHECKLIST_LABELS = {
+    c0: 'Confirmed access',
+    c1: 'Claude desktop app open and signed in',
+    c2: 'Opened a Cowork session',
+    c3: 'Salesforce connection added',
+    c4: 'Salesforce authorized and connected',
+    c5: 'Verification query returned real data',
+    c6: 'Understand what Claude can access',
+    c7: 'Tried the account lookup',
+    c8: 'Tried the open opportunities query',
+    c9: 'Tried the contact search',
+  };
+
+  const CH1_IDS = ['c1', 'c2', 'c3', 'c4'];
+  const CH2_IDS = ['c5', 'c6'];
+  const CH3_IDS = ['c7', 'c8', 'c9'];
+  const CH3_REQUIRED = 2;
+
+  const ALL_IDS = [...CH1_IDS, ...CH2_IDS, ...CH3_IDS];
+
+  let accessLog = [];
+  let currentUserEmail = localStorage.getItem(STORAGE_PREFIX + 'email') || '';
+  let currentUserName  = localStorage.getItem(STORAGE_PREFIX + 'name')  || '';
+
+  function saveState() {
+    localStorage.setItem(STORAGE_PREFIX + 'email', currentUserEmail);
+    localStorage.setItem(STORAGE_PREFIX + 'name',  currentUserName);
+    const checks = {};
+    ALL_IDS.forEach(id => { const cb = document.getElementById(id); if (cb) checks[id] = cb.checked; });
+    localStorage.setItem(STORAGE_PREFIX + 'checks', JSON.stringify(checks));
+  }
+
+  function getChapterProgress(ids, requiredCount) {
+    const checked = ids.filter(id => document.getElementById(id) && document.getElementById(id).checked).length;
+    const total = requiredCount || ids.length;
+    return { checked: Math.min(checked, total), total, pct: Math.round((Math.min(checked, total) / total) * 100) };
+  }
+
+  function getOverallProgress() {
+    const ch1 = getChapterProgress(CH1_IDS);
+    const ch2 = getChapterProgress(CH2_IDS);
+    const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED);
+    const checked = ch1.checked + ch2.checked + ch3.checked;
+    const total   = ch1.total   + ch2.total   + ch3.total;
+    return { checked, total, pct: Math.round((checked / total) * 100) };
+  }
+
+  function getOnboardingStatus() {
+    const p = getOverallProgress();
+    if (p.pct === 100) return 'complete';
+    if (p.checked > 0) return 'in-progress';
+    return 'not-started';
+  }
+
+  function getCheckedTasks() {
+    return ALL_IDS.filter(id => document.getElementById(id) && document.getElementById(id).checked).map(id => CHECKLIST_LABELS[id]);
+  }
+
+  function checkEmail() {
+    const input  = document.getElementById('emailInput');
+    const result = document.getElementById('emailResult');
+    const email  = input.value.trim().toLowerCase();
+    if (!email) { result.className = 'email-result error'; result.innerHTML = '<strong>Please enter your email address.</strong>'; return; }
+    if (email.endsWith(EMAIL_DOMAIN)) {
+      const name = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      currentUserEmail = email; currentUserName = name;
+      saveState();
+      result.className = 'email-result success';
+      result.innerHTML = '<strong>Welcome, ' + name + '!</strong> Your spot is saved. Ready to get started?' +
+        '<br><a href="https://claude.ai/download" target="_blank" class="verify-btn">Get Claude Desktop &rarr;</a>';
+      const c0 = document.getElementById('c0'); if (c0) { c0.checked = true; updateChecklist(); }
+      logAccess(name, email);
+    } else if (email.includes('@')) {
+      result.className = 'email-result error';
+      result.innerHTML = '<strong>This email isn\'t on the @pelagohealth.com domain.</strong> Please use your Pelago work email.';
+    } else {
+      result.className = 'email-result error';
+      result.innerHTML = '<strong>Please enter a valid email address.</strong>';
+    }
+  }
+
+  function logAccess(name, email) {
+    const existing = accessLog.find(e => e.email === email);
+    if (existing) { existing.timestamp = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); syncToSheet(existing); updateAdminTable(); return; }
+    const entry = { name, email, status: 'not-started', progress: '0%', ch1: '0 of ' + CH1_IDS.length, ch2: '0 of ' + CH2_IDS.length, ch3: '0 of ' + CH3_REQUIRED, tasks: [], timestamp: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) };
+    accessLog.push(entry); syncToSheet(entry); updateAdminTable();
+  }
+
+  function updateUserProgress() {
+    if (!currentUserEmail) return;
+    const entry = accessLog.find(e => e.email === currentUserEmail); if (!entry) return;
+    const ch1 = getChapterProgress(CH1_IDS); const ch2 = getChapterProgress(CH2_IDS); const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED); const overall = getOverallProgress();
+    entry.status = getOnboardingStatus(); entry.progress = overall.pct + '%';
+    entry.ch1 = ch1.checked + ' of ' + ch1.total; entry.ch2 = ch2.checked + ' of ' + ch2.total; entry.ch3 = ch3.checked + ' of ' + ch3.total;
+    entry.tasks = getCheckedTasks(); entry.timestamp = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    if (overall.pct === 100 && !entry.completedAt) { entry.completedAt = new Date().toISOString(); localStorage.setItem(STORAGE_PREFIX + 'completed', entry.completedAt); }
+    if (!entry.completedAt) entry.completedAt = localStorage.getItem(STORAGE_PREFIX + 'completed') || '';
+    syncToSheet(entry); updateAdminTable();
+  }
+
+  function syncToSheet(entry) {
+    if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL.startsWith('{{')) return;
+    try {
+      const params = new URLSearchParams();
+      params.append('name', entry.name || ''); params.append('email', entry.email || ''); params.append('status', entry.status || 'not-started');
+      params.append('progress', entry.progress || '0%'); params.append('ch1', entry.ch1 || '0 of ' + CH1_IDS.length);
+      params.append('ch2', entry.ch2 || '0 of ' + CH2_IDS.length); params.append('ch3', entry.ch3 || '0 of ' + CH3_REQUIRED);
+      params.append('tasks', JSON.stringify(entry.tasks || [])); params.append('completedAt', entry.completedAt || ''); params.append('timestamp', entry.timestamp || '');
+      fetch(SHEET_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).catch(() => {});
+    } catch (err) {}
+  }
+
+  function updateAdminTable() {
+    const body = document.getElementById('adminBody'); const allstarsGrid = document.getElementById('allstarsGrid');
+    const allstarsSection = document.getElementById('allstarsSection'); const inprogressHeader = document.getElementById('inprogressHeader');
+    if (!body) return;
+    const validEntries = accessLog.filter(e => e.email);
+    function parsePct(v) { let n = parseFloat(v) || 0; return (n > 0 && n <= 1) ? Math.round(n * 100) : Math.round(n); }
+    function parseChapter(val, fallback) { if (!val) return { str: fallback, parts: fallback.split(' of ') }; const s = String(val); if (s.includes(' of ')) return { str: s, parts: s.split(' of ') }; return { str: fallback, parts: fallback.split(' of ') }; }
+    function parseDate(val) { if (!val) return 0; try { const normalized = String(val).replace(/(\d{4})\s+at\s+/i, '$1, '); const d = new Date(normalized); return isNaN(d.getTime()) ? 0 : d.getTime(); } catch(e) { return 0; } }
+    function formatCompleted(val) { if (!val) return ''; try { const normalized = String(val).replace(/(\d{4})\s+at\s+/i, '$1, '); const d = new Date(normalized); if (isNaN(d.getTime())) return val; return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); } catch(e) { return val; } }
+    const allstars = validEntries.filter(e => parsePct(e.progress) === 100);
+    const inProgress = validEntries.filter(e => parsePct(e.progress) < 100);
+    const sortedAllstars = [...allstars].sort((a, b) => { const da = parseDate(a.completedAt) || parseDate(a.timestamp); const db = parseDate(b.completedAt) || parseDate(b.timestamp); return db - da; });
+    if (sortedAllstars.length > 0) {
+      allstarsSection.style.display = 'block';
+      document.getElementById('allstarCount').textContent = sortedAllstars.length;
+      allstarsGrid.innerHTML = sortedAllstars.map(e => '<div class="allstar-card"><div class="allstar-medal">&#127942;</div><div><div class="allstar-name">' + e.name + '</div><span class="allstar-badge">100% COMPLETE</span><div class="allstar-date">' + (formatCompleted(e.completedAt) || formatCompleted(e.timestamp) || '') + '</div></div></div>').join('');
+    } else { allstarsSection.style.display = 'none'; }
+    inprogressHeader.style.display = (inProgress.length > 0 && allstars.length > 0) ? 'flex' : 'none';
+    const sortedInProgress = [...inProgress].sort((a, b) => parsePct(b.progress) - parsePct(a.progress));
+    const rows = sortedInProgress.map((e, idx) => {
+      let pct = parsePct(e.progress);
+      const statusLabel = e.status === 'complete' ? 'Complete' : e.status === 'in-progress' ? 'In Progress' : 'Not Started';
+      const ch1 = parseChapter(e.ch1, '0 of ' + CH1_IDS.length); const ch2 = parseChapter(e.ch2, '0 of ' + CH2_IDS.length); const ch3 = parseChapter(e.ch3, '0 of ' + CH3_REQUIRED);
+      const ch1Done = parseInt(ch1.parts[0]) === parseInt(ch1.parts[1]); const ch1Partial = parseInt(ch1.parts[0]) > 0 && !ch1Done;
+      const ch2Done = parseInt(ch2.parts[0]) === parseInt(ch2.parts[1]); const ch2Partial = parseInt(ch2.parts[0]) > 0 && !ch2Done;
+      const ch3Done = parseInt(ch3.parts[0]) === parseInt(ch3.parts[1]); const ch3Partial = parseInt(ch3.parts[0]) > 0 && !ch3Done;
+      return '<tr><td style="text-align:center;font-size:14px;width:40px;color:var(--text-dim);font-weight:600;">' + (idx + 1) + '</td><td><strong>' + e.name + '</strong></td><td><strong style="font-size:13px;">' + pct + '%</strong><div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%;background:var(--pelago-yellow)"></div></div></td><td><div class="chapter-pips" title="Ch1: ' + ch1.str + '  Ch2: ' + ch2.str + '  Ch3: ' + ch3.str + '"><div class="chapter-pip ' + (ch1Done ? 'done' : ch1Partial ? 'partial' : '') + '"></div><div class="chapter-pip ' + (ch2Done ? 'done' : ch2Partial ? 'partial' : '') + '"></div><div class="chapter-pip ' + (ch3Done ? 'done' : ch3Partial ? 'partial' : '') + '"></div></div><span style="font-size:11px;color:var(--text-dim);">' + ch1.str + ' · ' + ch2.str + ' · ' + ch3.str + '</span></td><td><span class="admin-status ' + e.status + '">' + statusLabel + '</span></td><td>' + e.timestamp + '</td></tr>';
+    }).join('');
+    body.innerHTML = rows || '<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">No one has checked in yet. Be the first!</td></tr>';
+    document.getElementById('statTotal').textContent = validEntries.length;
+    document.getElementById('statCompleted').textContent = allstars.length;
+    document.getElementById('statInProgress').textContent = validEntries.filter(e => e.status === 'in-progress').length;
+    document.getElementById('statNotStarted').textContent = validEntries.filter(e => e.status === 'not-started').length;
+  }
+
+  function mergeSheetData(data) {
+    if (!Array.isArray(data)) return;
+    if (currentUserEmail) { const localEntry = accessLog.find(e => e.email === currentUserEmail); const filtered = data.filter(e => e.email !== currentUserEmail); if (localEntry) filtered.unshift(localEntry); accessLog = filtered; } else { accessLog = data; }
+    updateAdminTable();
+  }
+
+  function loadFromSheet() { if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL.startsWith('{{')) { alert('No Google Sheet connected.'); return; } fetch(SHEET_WEBHOOK_URL).then(r => r.json()).then(data => mergeSheetData(data)).catch(() => alert('Could not load data from the Sheet.')); }
+  function exportCSV() { if (accessLog.length === 0) { alert('No data to export.'); return; } let csv = 'Name,Email,Status,Progress,Chapter 1,Chapter 2,Chapter 3,Completed Tasks,Last Active\n'; accessLog.forEach(e => { const tasks = (e.tasks || []).join('; '); csv += '"' + e.name + '","' + e.email + '","' + e.status + '","' + e.progress + '","' + e.ch1 + '","' + e.ch2 + '","' + e.ch3 + '","' + tasks + '","' + e.timestamp + '"\n'; }); const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = STORAGE_PREFIX + 'progress.csv'; a.click(); }
+
+  function toggle(btn) { btn.closest('.step-card').classList.toggle('open'); }
+  function toggleAgent(btn) { btn.closest('.agent-card').classList.toggle('open'); }
+  function copyPrompt(el) { const text = el.textContent.replace('Click to copy', '').replace('Copied!', '').trim(); navigator.clipboard.writeText(text).then(() => { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 1500); }); }
+
+  function updateChecklist() {
+    document.querySelectorAll('.check-item').forEach(item => { const cb = item.querySelector('input'); item.classList.toggle('checked', cb.checked); });
+    document.querySelectorAll('.step-check input[type="checkbox"]').forEach(cb => {
+      const card = cb.closest('.step-card') || cb.closest('.agent-card');
+      if (card) { const allChecks = card.querySelectorAll('.step-check input[type="checkbox"]'); card.classList.toggle('step-done', Array.from(allChecks).every(c => c.checked)); }
+    });
+    saveState(); updateUserProgress(); updateProgress(); checkCompletion();
+  }
+
+  let confettiDone = false;
+  function checkCompletion() {
+    const overall = getOverallProgress();
+    const allstarBanner = document.getElementById('allstarBanner');
+    if (overall.pct === 100 || localStorage.getItem(STORAGE_PREFIX + 'completed')) allstarBanner.style.display = 'block';
+    if (overall.pct === 100 && !confettiDone) { confettiDone = true; launchConfetti(); document.getElementById('celebrationBanner').style.display = 'block'; }
+  }
+
+  function launchConfetti() {
+    const canvas = document.getElementById('confettiCanvas'); const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const pelagoColors = ['#FAE355','#722F49','#4D6525','#A4BDFF','#EEBCFF','#DDF1C4','#FCD3BF','#BDA98C'];
+    const pieces = []; for (let i = 0; i < 200; i++) pieces.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, w: Math.random() * 10 + 5, h: Math.random() * 6 + 3, color: pelagoColors[Math.floor(Math.random() * pelagoColors.length)], vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2, rot: Math.random() * 360, rotV: (Math.random() - 0.5) * 10, opacity: 1 });
+    let frame = 0; function draw() { ctx.clearRect(0, 0, canvas.width, canvas.height); let alive = false; pieces.forEach(p => { if (p.opacity <= 0) return; alive = true; p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.rot += p.rotV; if (frame > 120) p.opacity -= 0.008; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180); ctx.globalAlpha = Math.max(0, p.opacity); ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore(); }); frame++; if (alive) requestAnimationFrame(draw); else ctx.clearRect(0, 0, canvas.width, canvas.height); } draw();
+  }
+
+  function updateProgress() {
+    const ch1 = getChapterProgress(CH1_IDS); const ch2 = getChapterProgress(CH2_IDS); const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED); const overall = getOverallProgress();
+    const steps = document.querySelectorAll('.progress-step');
+    if (steps[0]) steps[0].className = 'progress-step' + (ch1.pct === 100 ? ' done' : ch1.checked > 0 ? ' active' : '');
+    if (steps[1]) steps[1].className = 'progress-step' + (ch2.pct === 100 ? ' done' : ch2.checked > 0 ? ' active' : '');
+    if (steps[2]) steps[2].className = 'progress-step' + (ch3.pct === 100 ? ' done' : ch3.checked > 0 ? ' active' : '');
+    document.getElementById('progressLabel').textContent = overall.checked + ' / ' + overall.total;
+  }
+
+  document.querySelectorAll('.progress-step').forEach(step => { step.addEventListener('click', () => { const ch = step.dataset.chapter; const el = document.getElementById('ch' + ch); if (el) el.scrollIntoView({ behavior: 'smooth' }); }); });
+  const observer = new MutationObserver(updateProgress);
+  document.querySelectorAll('.step-card, .agent-card').forEach(card => { observer.observe(card, { attributes: true, attributeFilter: ['class'] }); });
+
+  (function restoreState() {
+    if (!currentUserEmail) return;
+    const input = document.getElementById('emailInput'); const result = document.getElementById('emailResult');
+    if (input) input.value = currentUserEmail;
+    if (result) { result.className = 'email-result success'; result.innerHTML = '<strong>Welcome back, ' + currentUserName + '!</strong> Your progress has been restored.<br><a href="https://claude.ai/download" target="_blank" class="verify-btn">Get Claude Desktop &rarr;</a>'; }
+    const entry = { name: currentUserName, email: currentUserEmail, status: 'not-started', progress: '0%', ch1: '0 of ' + CH1_IDS.length, ch2: '0 of ' + CH2_IDS.length, ch3: '0 of ' + CH3_REQUIRED, tasks: [], completedAt: localStorage.getItem(STORAGE_PREFIX + 'completed') || '', timestamp: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) };
+    accessLog.push(entry);
+    const saved = localStorage.getItem(STORAGE_PREFIX + 'checks');
+    if (saved) { try { const checks = JSON.parse(saved); Object.keys(checks).forEach(id => { const cb = document.getElementById(id); if (cb) { cb.checked = checks[id]; const item = cb.closest('.check-item'); if (item) item.classList.toggle('checked', checks[id]); } }); document.querySelectorAll('.step-card, .agent-card').forEach(card => { const allChecks = card.querySelectorAll('.step-check input[type="checkbox"]'); if (allChecks.length > 0) card.classList.toggle('step-done', Array.from(allChecks).every(c => c.checked)); }); } catch(e) {} }
+    updateUserProgress(); updateProgress(); checkCompletion();
+  })();
+
+  (function autoLoadLeaderboard() {
+    if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL.startsWith('{{')) return;
+    fetch(SHEET_WEBHOOK_URL).then(r => r.json()).then(data => mergeSheetData(data)).catch(() => {});
+  })();
+</script>
+
+<button class="help-fab" onclick="openFeedback()" title="Send feedback">?</button>
+
+<div class="feedback-overlay" id="feedbackOverlay" onclick="if(event.target===this)closeFeedback()">
+  <div class="feedback-modal">
+    <button class="fb-close" onclick="closeFeedback()">&times;</button>
+    <div id="fbForm">
+      <h3>Send Feedback</h3>
+      <p class="fb-desc">Having trouble or have a suggestion? Let Christina know and she'll follow up.</p>
+      <label for="fbName">Your name</label>
+      <input type="text" id="fbName" placeholder="e.g. Jane Smith">
+      <label for="fbEmail">Email</label>
+      <input type="email" id="fbEmail" placeholder="yourname@pelagohealth.com">
+      <label for="fbMessage">Message</label>
+      <textarea id="fbMessage" placeholder="Questions, issues, or ideas are all welcome..."></textarea>
+      <div class="feedback-actions">
+        <button class="fb-cancel" onclick="closeFeedback()">Cancel</button>
+        <button class="fb-send" onclick="sendFeedback()">Send Feedback</button>
+      </div>
+    </div>
+    <div class="fb-success" id="fbSuccess">
+      <div class="fb-check">&#10003;</div>
+      <strong>Feedback sent!</strong>
+      <p>Thanks for your input. Christina will get back to you soon.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openFeedback() { document.getElementById('feedbackOverlay').classList.add('open'); document.getElementById('fbForm').style.display = 'block'; document.getElementById('fbSuccess').style.display = 'none'; if (typeof currentUserEmail !== 'undefined' && currentUserEmail) document.getElementById('fbEmail').value = currentUserEmail; if (typeof currentUserName !== 'undefined' && currentUserName) document.getElementById('fbName').value = currentUserName; }
+  function closeFeedback() { document.getElementById('feedbackOverlay').classList.remove('open'); }
+  function sendFeedback() {
+    const name = document.getElementById('fbName').value.trim(); const email = document.getElementById('fbEmail').value.trim(); const message = document.getElementById('fbMessage').value.trim();
+    if (!message) { document.getElementById('fbMessage').style.borderColor = '#c0392b'; return; }
+    if (SHEET_WEBHOOK_URL && !SHEET_WEBHOOK_URL.startsWith('{{')) { const params = new URLSearchParams(); params.append('type', 'feedback'); params.append('name', name || 'Anonymous'); params.append('email', email || 'Not provided'); params.append('message', message); fetch(SHEET_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).catch(() => {}); }
+    document.getElementById('fbForm').style.display = 'none'; document.getElementById('fbSuccess').style.display = 'block';
+    setTimeout(() => { document.getElementById('fbMessage').value = ''; document.getElementById('fbMessage').style.borderColor = ''; }, 500);
+    setTimeout(closeFeedback, 3000);
+  }
+</script>
+
+</body>
+</html>
