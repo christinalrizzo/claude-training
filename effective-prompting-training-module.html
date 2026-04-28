@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Effective Prompting — Pelago Health</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Roboto+Slab:wght@400;500;600;700&display=swap');
+
+  :root {
+    --pelago-yellow:  #FAE355;
+    --jet-black:      #212633;
+    --white:          #FFFFFF;
+    --maroon:         #722F49;
+    --moss-green:     #4D6525;
+    --cerulean:       #A4BDFF;
+    --punch-pink:     #EEBCFF;
+    --tea-green:      #DDF1C4;
+    --mist-blue:      #E8EEFF;
+    --tan:            #BDA98C;
+    --peach:          #FCD3BF;
+    --cream:          #FFF4DC;
+    --bg:             var(--cream);
+    --surface:        var(--white);
+    --border:         #e0d8c8;
+    --border-light:   #ede6d6;
+    --accent:         var(--maroon);
+    --accent-light:   #8e3d5b;
+    --accent-bg:      rgba(114,47,73,.06);
+    --green:          var(--moss-green);
+    --green-bg:       rgba(77,101,37,.07);
+    --amber:          #c9a020;
+    --amber-bg:       rgba(250,227,85,.15);
+    --text:           var(--jet-black);
+    --text-dim:       #5c6070;
+    --text-bright:    var(--jet-black);
+    --radius:         16px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: 'Roboto Slab', 'DM Sans', serif; }
+
+  /* ── Hero ── */
+  .hero { text-align: center; padding: 80px 24px 60px; background: var(--pelago-yellow); position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%); width: 140%; height: 160px; background: var(--bg); border-radius: 50% 50% 0 0; }
+  .hero-badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--maroon); background: rgba(255,255,255,.55); border: 1px solid rgba(114,47,73,.15); padding: 6px 16px; border-radius: 100px; margin-bottom: 20px; position: relative; z-index: 1; }
+  .hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 700; color: var(--jet-black); letter-spacing: -0.02em; margin-bottom: 16px; position: relative; z-index: 1; }
+  .hero p { font-size: 18px; color: var(--jet-black); opacity: .7; max-width: 560px; margin: 0 auto; position: relative; z-index: 1; }
+  .hero-leaderboard-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 10px 22px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); border: 2px solid var(--maroon); border-radius: 999px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--maroon); cursor: pointer; transition: all .2s; }
+  .hero-leaderboard-btn:hover { background: var(--maroon); color: #fff; box-shadow: 0 4px 16px rgba(114,47,73,.25); transform: translateY(-1px); }
+  .hero-leaderboard-btn svg { width: 16px; height: 16px; }
+  .pelago-logo { margin-bottom: 24px; position: relative; z-index: 1; }
+  .pelago-logo img { height: 40px; width: auto; }
+  .oval-accent { position: absolute; border-radius: 50%; opacity: .08; pointer-events: none; }
+  .hero .oval-1 { width: 300px; height: 200px; background: var(--maroon); top: -40px; right: -60px; transform: rotate(-15deg); }
+  .hero .oval-2 { width: 200px; height: 140px; background: var(--moss-green); bottom: 20px; left: -40px; transform: rotate(10deg); }
+
+  /* ── All-Star banner ── */
+  .allstar-banner { background: linear-gradient(135deg, var(--tea-green), rgba(250,227,85,.2)); border-bottom: 2px solid rgba(77,101,37,.15); }
+  .allstar-banner-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 18px; padding: 24px 32px; }
+  .allstar-banner-trophy { font-size: 42px; flex-shrink: 0; }
+  .allstar-banner h2 { font-family: 'Roboto Slab', serif; font-size: 20px; font-weight: 700; color: var(--moss-green); margin-bottom: 4px; }
+  .allstar-banner p { font-size: 14px; color: var(--text-dim); }
+
+  /* ── Progress bar ── */
+  .progress-wrap { position: sticky; top: 0; z-index: 100; background: rgba(255,244,220,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .progress-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 6px; padding: 14px 0; }
+  .progress-step { flex: 1; height: 5px; border-radius: 100px; background: var(--border); transition: background .4s; cursor: pointer; }
+  .progress-step.done { background: var(--moss-green); }
+  .progress-step.active { background: var(--pelago-yellow); box-shadow: 0 0 8px rgba(250,227,85,.6); }
+  .progress-label { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-left: 12px; white-space: nowrap; min-width: 60px; text-align: right; }
+
+  /* ── Container ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px 120px; }
+
+  /* ── Chapter ── */
+  .chapter { margin-top: 64px; scroll-margin-top: 80px; }
+  .chapter-header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .chapter-number { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Roboto Slab', serif; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+  .ch-maroon .chapter-number  { background: var(--accent-bg); color: var(--maroon); border: 2px solid rgba(114,47,73,.2); }
+  .ch-green .chapter-number   { background: var(--green-bg); color: var(--moss-green); border: 2px solid rgba(77,101,37,.2); }
+  .ch-yellow .chapter-number  { background: var(--amber-bg); color: var(--amber); border: 2px solid rgba(250,227,85,.4); }
+  .chapter-header h2 { font-size: 26px; font-weight: 700; color: var(--text-bright); }
+  .chapter-intro { color: var(--text-dim); margin-bottom: 32px; font-size: 15px; max-width: 680px; }
+  .chapter-checklist { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-top: 20px; }
+  .chapter-checklist h4 { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 12px; }
+  .ch-maroon .chapter-checklist h4 { color: var(--maroon); }
+  .ch-green .chapter-checklist h4 { color: var(--moss-green); }
+  .ch-yellow .chapter-checklist h4 { color: var(--amber); }
+
+  /* ── Step cards ── */
+  .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: border-color .25s, box-shadow .25s; }
+  .step-card:hover { border-color: var(--tan); box-shadow: 0 2px 12px rgba(33,38,51,.06); }
+  .step-toggle { display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; user-select: none; width: 100%; background: none; border: none; color: inherit; font: inherit; text-align: left; }
+  .step-num { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text-dim); flex-shrink: 0; transition: all .25s; }
+  .step-card.open .step-num, .step-card.completed .step-num { border-color: var(--maroon); color: var(--white); background: var(--maroon); }
+  .step-card.step-done .step-num { border-color: var(--moss-green); color: var(--white); background: var(--moss-green); }
+  .step-card.step-done .step-num span { display: none; }
+  .step-card.step-done .step-num::after { content: '\2713'; font-size: 16px; font-weight: 700; }
+  .step-card.step-done .step-title { color: var(--moss-green); }
+  .step-title { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-bright); }
+  .step-arrow { font-size: 18px; color: var(--tan); transition: transform .25s; }
+  .step-card.open .step-arrow { transform: rotate(180deg); color: var(--maroon); }
+  .step-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .3s; padding: 0 20px; }
+  .step-card.open .step-body { max-height: 2000px; padding: 0 20px 20px; }
+  .step-body p { margin-bottom: 12px; color: var(--text); font-size: 14px; }
+  .step-body .action-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--maroon); margin-bottom: 6px; }
+  .step-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; background: var(--green-bg); border-radius: 10px; border: 1px solid rgba(77,101,37,.12); }
+  .step-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--moss-green); cursor: pointer; flex-shrink: 0; }
+  .step-check label { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--moss-green); }
+
+  /* ── Agent cards ── */
+  .agent-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: border-color .25s, box-shadow .25s; }
+  .agent-card:hover { border-color: var(--tan); box-shadow: 0 2px 12px rgba(33,38,51,.06); }
+  .agent-toggle { display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; user-select: none; width: 100%; background: none; border: none; color: inherit; font: inherit; text-align: left; }
+  .agent-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .agent-title { flex: 1; }
+  .agent-title strong { display: block; font-size: 15px; font-weight: 600; color: var(--text-bright); }
+  .agent-title span { font-size: 13px; color: var(--text-dim); }
+  .agent-arrow { font-size: 18px; color: var(--tan); transition: transform .25s; }
+  .agent-card.open .agent-arrow { transform: rotate(180deg); color: var(--maroon); }
+  .agent-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .3s; padding: 0 20px; }
+  .agent-card.open .agent-body { max-height: 3000px; padding: 0 20px 20px; }
+  .agent-body p { margin-bottom: 12px; font-size: 14px; }
+  .agent-body h4 { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--maroon); margin: 16px 0 6px; }
+  .agent-body h4:first-child { margin-top: 0; }
+  .agent-card.step-done { border-color: rgba(77,101,37,.25); }
+  .agent-card.step-done .agent-icon { background: var(--moss-green) !important; border-color: var(--moss-green) !important; position: relative; font-size: 0; }
+  .agent-card.step-done .agent-icon::after { content: '\2713'; font-size: 18px; font-weight: 700; color: var(--white); }
+  .agent-card.step-done .agent-title strong { color: var(--moss-green); }
+
+  /* ── Numbered list ── */
+  .step-list { counter-reset: steps; padding: 0; list-style: none; }
+  .step-list li { counter-increment: steps; padding: 6px 0 6px 28px; position: relative; font-size: 14px; }
+  .step-list li::before { content: counter(steps); position: absolute; left: 0; top: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-bg); color: var(--maroon); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Prereq tags ── */
+  .prereq-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
+  .prereq-tag.gmail { background: rgba(114,47,73,.08); color: var(--maroon); }
+  .prereq-tag.calendar { background: rgba(77,101,37,.08); color: var(--moss-green); }
+  .prereq-tag.slack { background: rgba(164,189,255,.2); color: #4a6abf; }
+  .prereq-tag.none { background: rgba(189,169,140,.15); color: #7a6d5a; }
+
+  /* ── Visual cue boxes ── */
+  .visual-cue { background: var(--mist-blue); border: 1px solid rgba(164,189,255,.3); border-radius: 12px; padding: 14px 16px; margin: 12px 0; font-size: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .visual-cue .icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .visual-cue.tip { background: var(--tea-green); border-color: rgba(77,101,37,.2); }
+  .visual-cue.warn { background: var(--cream); border-color: rgba(189,169,140,.4); }
+
+  /* ── Nav path ── */
+  .nav-path { display: inline-flex; align-items: center; gap: 6px; background: rgba(33,38,51,.04); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--text); margin: 8px 0; font-family: 'SF Mono', Consolas, monospace; }
+  .nav-path .sep { color: var(--tan); }
+
+  /* ── Prompt box ── */
+  .prompt-box { background: var(--jet-black); color: #e8eaef; border-radius: 10px; padding: 14px 18px; margin: 10px 0; font-size: 14px; line-height: 1.6; font-family: 'DM Sans', system-ui, sans-serif; position: relative; cursor: pointer; transition: box-shadow .2s; border: 1px solid rgba(255,255,255,.06); }
+  .prompt-box:hover { box-shadow: 0 2px 12px rgba(33,38,51,.2); }
+  .prompt-box::after { content: 'Click to copy'; position: absolute; top: 8px; right: 12px; font-size: 11px; font-weight: 600; color: var(--tan); opacity: 0; transition: opacity .2s; }
+  .prompt-box:hover::after { opacity: 1; }
+  .prompt-box.copied::after { content: 'Copied!'; color: var(--tea-green); opacity: 1; }
+
+  /* ── Checklist at bottom ── */
+  .checklist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-top: 48px; }
+  .checklist-card h3 { font-size: 20px; font-weight: 700; color: var(--text-bright); margin-bottom: 20px; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+  .check-item:last-child { border-bottom: none; }
+  .check-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--moss-green); cursor: pointer; }
+  .check-item label { cursor: pointer; flex: 1; }
+  .check-item.checked label { color: var(--text-dim); text-decoration: line-through; }
+
+  /* ── Email checker ── */
+  .email-checker { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 14px; }
+  .email-checker p { font-size: 14px; margin-bottom: 14px; }
+  .email-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .email-form input { flex: 1; min-width: 240px; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; transition: border-color .2s; }
+  .email-form input:focus { border-color: var(--maroon); }
+  .email-form input::placeholder { color: var(--tan); }
+  .email-form button { padding: 10px 20px; border: none; border-radius: 10px; background: var(--maroon); color: var(--white); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .2s; white-space: nowrap; }
+  .email-form button:hover { background: var(--accent-light); }
+  .email-result { margin-top: 14px; padding: 14px 16px; border-radius: 10px; font-size: 14px; display: none; }
+  .email-result.success { display: block; background: var(--tea-green); border: 1px solid rgba(77,101,37,.2); }
+  .email-result.error { display: block; background: rgba(252,211,191,.4); border: 1px solid rgba(189,169,140,.4); }
+  .email-result strong { display: block; margin-bottom: 4px; }
+  .verify-btn { display: inline-block; margin-top: 12px; padding: 10px 22px; border-radius: 10px; background: var(--pelago-yellow); color: var(--jet-black); font-size: 14px; font-weight: 700; font-family: inherit; text-decoration: none; transition: box-shadow .2s, transform .15s; }
+  .verify-btn:hover { box-shadow: 0 4px 16px rgba(250,227,85,.4); transform: translateY(-1px); }
+
+  /* ── Leaderboard ── */
+  .admin-panel { background: var(--surface); border: 2px solid var(--maroon); border-radius: var(--radius); padding: 24px; margin: 32px 0; }
+  .admin-panel h3 { font-family: 'Roboto Slab', serif; font-size: 18px; font-weight: 700; color: var(--maroon); margin-bottom: 6px; }
+  .admin-panel .admin-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .admin-table th { text-align: left; padding: 8px 12px; background: var(--accent-bg); color: var(--maroon); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; border-bottom: 2px solid var(--border); }
+  .admin-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .admin-status.complete { background: var(--tea-green); color: var(--moss-green); }
+  .admin-status.in-progress { background: var(--amber-bg); color: var(--amber); }
+  .admin-status.not-started { background: rgba(33,38,51,.06); color: var(--text-dim); }
+  .progress-mini { width: 100%; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .progress-mini-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .chapter-pips { display: flex; gap: 4px; margin-top: 4px; }
+  .chapter-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .chapter-pip.done { background: var(--moss-green); }
+  .chapter-pip.partial { background: var(--pelago-yellow); }
+  .admin-count { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .admin-count .stat { background: var(--bg); border-radius: 10px; padding: 12px 18px; text-align: center; min-width: 100px; }
+  .admin-count .stat-num { font-size: 28px; font-weight: 800; color: var(--maroon); display: block; }
+  .admin-count .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .admin-export-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .2s; margin-left: 8px; }
+  .admin-export-btn:hover { background: var(--tea-green); }
+  .allstars-section { margin-bottom: 28px; }
+  .allstars-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 14px 18px; background: linear-gradient(135deg, rgba(250,227,85,.15), rgba(77,101,37,.08)); border-radius: 12px; border: 1px solid rgba(77,101,37,.15); }
+  .allstars-header .star-icon { font-size: 24px; }
+  .allstars-header h4 { font-family: 'Roboto Slab', serif; font-size: 16px; font-weight: 700; color: var(--moss-green); margin: 0; }
+  .allstars-header .allstar-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--moss-green); background: var(--tea-green); padding: 3px 10px; border-radius: 100px; }
+  .allstars-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .allstar-card { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid rgba(77,101,37,.12); border-radius: 12px; transition: box-shadow .2s; }
+  .allstar-card:hover { box-shadow: 0 2px 12px rgba(77,101,37,.1); }
+  .allstar-medal { font-size: 22px; flex-shrink: 0; }
+  .allstar-name { font-weight: 700; font-size: 14px; color: var(--jet-black); }
+  .allstar-date { font-size: 11px; color: var(--text-dim); }
+  .allstar-badge { display: inline-block; margin-top: 2px; font-size: 10px; font-weight: 700; color: var(--moss-green); background: var(--tea-green); padding: 1px 6px; border-radius: 4px; letter-spacing: .02em; }
+  .inprogress-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .inprogress-header h4 { font-family: 'Roboto Slab', serif; font-size: 14px; font-weight: 700; color: var(--text-dim); margin: 0; }
+
+  /* ── Confetti & celebration ── */
+  .confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+  .celebration-banner { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: var(--pelago-yellow); color: var(--jet-black); padding: 32px 48px; border-radius: 20px; text-align: center; z-index: 10000; box-shadow: 0 20px 60px rgba(33,38,51,.25); animation: popIn .5s ease forwards; }
+  .celebration-banner h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .celebration-banner p { font-size: 16px; opacity: .7; }
+  @keyframes popIn { 0% { transform: translate(-50%,-50%) scale(0); } 70% { transform: translate(-50%,-50%) scale(1.05); } 100% { transform: translate(-50%,-50%) scale(1); } }
+
+  /* ── Floating help button ── */
+  .help-fab { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--maroon); color: #fff; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 16px rgba(114,47,73,.3); transition: all .2s; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .help-fab:hover { background: var(--accent-light); transform: scale(1.08); box-shadow: 0 6px 24px rgba(114,47,73,.4); }
+
+  /* ── Feedback modal ── */
+  .feedback-overlay { display: none; position: fixed; inset: 0; background: rgba(33,38,51,.5); z-index: 1001; align-items: center; justify-content: center; }
+  .feedback-overlay.open { display: flex; }
+  .feedback-modal { background: var(--surface); border-radius: var(--radius); padding: 28px; max-width: 440px; width: 90%; position: relative; }
+  .feedback-modal h3 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .fb-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
+  .feedback-modal label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin-bottom: 5px; margin-top: 12px; }
+  .feedback-modal input, .feedback-modal textarea { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; transition: border-color .2s; }
+  .feedback-modal input:focus, .feedback-modal textarea:focus { border-color: var(--maroon); }
+  .feedback-modal textarea { min-height: 90px; resize: vertical; margin-bottom: 16px; }
+  .feedback-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .fb-cancel { padding: 10px 20px; border: 1px solid var(--border); border-radius: 10px; background: none; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; color: var(--text-dim); }
+  .fb-send { padding: 10px 20px; border-radius: 10px; background: var(--maroon); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; border: none; color: #fff; }
+  .fb-send:hover { background: var(--accent-light); }
+  .fb-close { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 20px; color: var(--text-dim); cursor: pointer; line-height: 1; }
+  .fb-close:hover { color: var(--maroon); }
+  .fb-success { display: none; text-align: center; padding: 20px 0; }
+  .fb-success .fb-check { font-size: 40px; margin-bottom: 8px; }
+  .fb-success p { font-size: 14px; color: var(--text-dim); }
+  .fb-success strong { color: var(--maroon); display: block; font-size: 16px; margin-bottom: 4px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) { .hero { padding: 60px 16px 40px; } .chapter-header h2 { font-size: 22px; } .container { padding: 0 16px 80px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="oval-accent oval-1"></div>
+  <div class="oval-accent oval-2"></div>
+  <div class="pelago-logo">
+    <img src="https://res.cloudinary.com/brandpad/image/upload/c_scale,dpr_auto,f_auto,w_1792/v1734550216/17729/frame_f7f6ad44" alt="Pelago">
+  </div>
+  <div class="hero-badge">AI Skills Training</div>
+  <h1>Effective Prompting<br>for Everyone at Pelago</h1>
+  <p>Learn how to get more out of AI tools with clearer, smarter prompts — no technical background required.</p>
+  <button class="hero-leaderboard-btn" onclick="document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+    View Leaderboard
+  </button>
+</header>
+
+<div class="allstar-banner" id="allstarBanner" style="display:none;">
+  <div class="allstar-banner-inner">
+    <span class="allstar-banner-trophy">&#127942;</span>
+    <div>
+      <h2>You're a Prompting Pro!</h2>
+      <p>You've completed the Effective Prompting training. Your name is on the leaderboard below.</p>
+    </div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="progress-step active" data-chapter="1"></div>
+    <div class="progress-step" data-chapter="2"></div>
+    <div class="progress-step" data-chapter="3"></div>
+    <div class="progress-step" data-chapter="4"></div>
+    <div class="progress-label" id="progressLabel">0 / 13</div>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- BEFORE YOU BEGIN -->
+  <section class="chapter ch-maroon" id="before-you-begin" style="margin-top:40px;">
+    <div class="chapter-header">
+      <div class="chapter-number" style="background:var(--amber-bg);color:var(--amber);border:2px solid rgba(250,227,85,.4);font-size:16px;">&#9733;</div>
+      <h2>Before You Begin</h2>
+    </div>
+    <p class="chapter-intro">Enter your Pelago email below to save your progress and appear on the leaderboard. You can pick up right where you left off if you close the page.</p>
+    <div class="email-checker" id="emailChecker">
+      <p>Your progress is saved locally in your browser. Enter your work email so your completion is tracked on the leaderboard.</p>
+      <div class="email-form">
+        <input type="email" id="emailInput" placeholder="yourname@pelagohealth.com" onkeydown="if(event.key==='Enter')checkEmail()">
+        <button onclick="checkEmail()">Save my spot</button>
+      </div>
+      <div class="email-result" id="emailResult"></div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 1: What Is Prompting? -->
+  <section class="chapter ch-maroon" id="ch1">
+    <div class="chapter-header">
+      <div class="chapter-number">1</div>
+      <h2>What Is Prompting?</h2>
+    </div>
+    <p class="chapter-intro">A prompt is simply what you type when you talk to an AI. Understanding what makes a prompt effective is the first step to getting dramatically better results — and it's simpler than you think.</p>
+
+    <!-- Step 1 -->
+    <div class="step-card" data-step="1">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>1</span></div>
+        <div class="step-title">What is a prompt?</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>A prompt is any text you send to an AI model — a question, an instruction, a piece of text to analyze, or a combination of all three. The AI reads your prompt and generates the most useful response it can based on exactly what you wrote.</p>
+        <p>Think of it like giving directions to someone who has never been to your office before. The clearer and more specific your instructions, the better your chance of them arriving at the right place.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div><strong>Examples of prompts:</strong> "Summarize this email in 3 bullets." / "Write a follow-up message to a candidate we're rejecting." / "What are the pros and cons of switching to a quarterly review cycle?"</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c1" onchange="updateChecklist()">
+          <label for="c1">I understand what a prompt is</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card" data-step="2">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>2</span></div>
+        <div class="step-title">How AI models interpret your words</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>AI models are very literal. They respond to what you actually typed, not what you meant to type. If your prompt is ambiguous, the AI will make its best guess — which is often not what you wanted. This is why wording matters.</p>
+        <p>The AI also has no memory of past conversations by default. Each time you start a new session, it starts fresh with no context about you, your role, or your work — unless you tell it.</p>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Try it now:</strong> Ask Claude "Tell me about Pelago" versus "Give me a 3-bullet summary of what a healthcare addiction treatment company does, written for a new employee." Notice how much more useful the second response is.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c2" onchange="updateChecklist()">
+          <label for="c2">I understand how AI interprets prompts</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card" data-step="3">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>3</span></div>
+        <div class="step-title">The anatomy of a great prompt</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>The best prompts tend to include four elements. You don't need all four every time — but knowing they exist helps you diagnose why a prompt isn't working.</p>
+        <ol class="step-list">
+          <li><strong>Task</strong> — What do you want the AI to do? (Write, summarize, list, explain, compare…)</li>
+          <li><strong>Context</strong> — Who are you? Who is the audience? What's the situation?</li>
+          <li><strong>Format</strong> — How should the output look? (Bullet list, table, paragraph, email…)</li>
+          <li><strong>Constraints</strong> — Any limits? (Length, tone, things to avoid…)</li>
+        </ol>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div><strong>Example using all four:</strong> "Write a 3-sentence summary <em>[format + constraint]</em> of the following meeting notes <em>[context]</em> for a non-clinical audience who wasn't present <em>[constraint]</em>: [paste notes here] <em>[task]</em>."</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c3" onchange="updateChecklist()">
+          <label for="c3">I know the four elements of a great prompt</label>
+        </div>
+      </div>
+    </div>
+
+    <input type="checkbox" id="c0" onchange="updateChecklist()" style="display:none;">
+  </section>
+
+  <!-- CHAPTER 2: Core Techniques -->
+  <section class="chapter ch-green" id="ch2">
+    <div class="chapter-header">
+      <div class="chapter-number">2</div>
+      <h2>Core Techniques</h2>
+    </div>
+    <p class="chapter-intro">These four techniques will immediately improve most of your AI interactions. Apply even one and you'll notice the difference in the quality of responses you get.</p>
+
+    <!-- Step 4 -->
+    <div class="step-card" data-step="4">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>4</span></div>
+        <div class="step-title">Be specific — not vague</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Vague prompts produce generic responses. The more specific you are about what you want, who it's for, and what "good" looks like, the better the output will be. Specificity is the single highest-leverage change you can make.</p>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div><strong>Vague:</strong> "Write an email about the new policy."</div>
+        </div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Specific:</strong> "Write a friendly 3-paragraph email to all Pelago employees announcing that we're switching to a new PTO tracking system starting June 1. The tone should be warm and encouraging, and end with a clear call to action to log in and update their remaining balance."</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c4" onchange="updateChecklist()">
+          <label for="c4">I know how to write specific prompts</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-card" data-step="5">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>5</span></div>
+        <div class="step-title">Provide context and background</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>AI knows nothing about your specific situation unless you tell it. Sharing relevant context — who you are, what you're working on, who the audience is — dramatically improves results. You don't need to write paragraphs; even one extra sentence helps.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div>Adding "I'm writing this for our clinical team who isn't familiar with Salesforce terminology" can completely transform the response — even if nothing else in the prompt changes.</div>
+        </div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Useful context to add:</strong> Your role, the audience's role or background, the purpose of the document, any relevant constraints ("this will go to external partners"), or what you've already tried.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c5" onchange="updateChecklist()">
+          <label for="c5">I know how to add useful context to a prompt</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step-card" data-step="6">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>6</span></div>
+        <div class="step-title">Define the format you want</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>If you want a bullet list, say so. If you want a table, ask for one. If you want a short response, specify the length. AI will match whatever format you describe — but it won't guess if you don't ask.</p>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Format phrases to try:</strong> "In 3 bullet points…" / "As a table with columns for [X] and [Y]…" / "In 2 short paragraphs…" / "As a numbered checklist…" / "In plain English, no jargon…" / "Under 100 words…"</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c6" onchange="updateChecklist()">
+          <label for="c6">I know how to specify output format</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step-card" data-step="7">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>7</span></div>
+        <div class="step-title">Assign a role or persona</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>Telling the AI to "act as" a certain type of expert helps it calibrate vocabulary, tone, and depth. This is especially useful when you need professional or technical content, or when you want the AI to take a particular perspective.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div><strong>Try these role openers:</strong> "Act as an experienced HR professional and help me write…" / "You are a plain-English explainer. Summarize this so a new hire can understand it." / "Respond as a skeptical executive who needs to be convinced."</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c7" onchange="updateChecklist()">
+          <label for="c7">I know how to use roles in prompts</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 3: Advanced Moves -->
+  <section class="chapter ch-maroon" id="ch3">
+    <div class="chapter-header">
+      <div class="chapter-number">3</div>
+      <h2>Advanced Moves</h2>
+    </div>
+    <p class="chapter-intro">Once you have the basics, these three techniques help you unlock more nuanced, powerful outputs — especially for complex tasks or when your first attempt doesn't quite land.</p>
+
+    <!-- Step 8 -->
+    <div class="step-card" data-step="8">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>8</span></div>
+        <div class="step-title">Iterate and refine — don't start over</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>You rarely need to get it perfect on the first try. Think of prompting as a conversation — if the first response isn't right, follow up with a refinement in the same chat. The AI will adjust based on what you say.</p>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Refinement phrases that work well:</strong> "That's close, but make it shorter and less formal." / "Good structure — now focus more on the patient perspective." / "Rewrite the second paragraph so it sounds less corporate." / "Add a line acknowledging that this is a difficult transition."</div>
+        </div>
+        <div class="visual-cue warn">
+          <span class="icon">⚠️</span>
+          <div>Don't start a new chat every time something's off. Staying in the same conversation gives the AI context to improve — starting fresh loses that context.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c8" onchange="updateChecklist()">
+          <label for="c8">I know how to iterate and refine a prompt</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 9 -->
+    <div class="step-card" data-step="9">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>9</span></div>
+        <div class="step-title">Chain your thinking with step-by-step prompts</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>For complex tasks, break them into steps and ask the AI to work through them one at a time. You can also ask the AI to "think step by step" before giving an answer — this tends to produce more accurate and thoughtful responses on anything analytical.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div><strong>Example:</strong> "First, list the three main risks in this proposal. Then, for each risk, suggest one mitigation strategy. Finally, write a one-paragraph executive summary of your findings." This forces structure into the AI's reasoning.</div>
+        </div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div>The phrase <strong>"Think step by step before answering"</strong> is particularly effective for math, logic, comparisons, and any prompt where reasoning quality matters.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c9" onchange="updateChecklist()">
+          <label for="c9">I know how to use step-by-step prompting</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 10 -->
+    <div class="step-card" data-step="10">
+      <button class="step-toggle" onclick="toggle(this)">
+        <div class="step-num"><span>10</span></div>
+        <div class="step-title">Give examples (few-shot prompting)</div>
+        <div class="step-arrow">&#x25BE;</div>
+      </button>
+      <div class="step-body">
+        <p>One of the most powerful prompting techniques is showing the AI an example of the output you want before asking it to produce more. This is called "few-shot" prompting, and it works because the AI matches the style, format, and tone of your example exactly.</p>
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div><strong>Template:</strong> "Here's the style I want: [paste your example]. Now write three more in the same style about [your topic]."</div>
+        </div>
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div>This is especially useful for: internal communications with a specific voice, slide titles that match an existing deck's tone, job descriptions that mirror your existing ones, or any content where "sounding like us" matters.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c10" onchange="updateChecklist()">
+          <label for="c10">I know how to use examples in prompts</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 4: Try It Yourself -->
+  <section class="chapter ch-yellow" id="ch4">
+    <div class="chapter-header">
+      <div class="chapter-number">4</div>
+      <h2>Try It Yourself</h2>
+    </div>
+    <p class="chapter-intro">Put your new skills to work. Open Claude at <a href="https://claude.ai" target="_blank" style="color:var(--maroon);font-weight:600;">claude.ai</a> and complete at least <strong>3 of these 5 activities</strong>. Each one is a real-world task you might actually need at Pelago.</p>
+
+    <!-- Activity 1 -->
+    <div class="agent-card" data-step="11">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(114,47,73,.08);border:1px solid rgba(114,47,73,.2);">✉️</div>
+        <div class="agent-title">
+          <strong>Draft a work email</strong>
+          <span>Practice: specificity + format</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What you'll practice</h4>
+        <p>Applying the specificity and format techniques from Chapter 2 to a real communication task.</p>
+
+        <h4>How to do it</h4>
+        <ol class="step-list">
+          <li>Open <a href="https://claude.ai" target="_blank" style="color:var(--maroon);font-weight:600;">claude.ai</a> in a new tab.</li>
+          <li>Think of a real email you need to send — or invent one (e.g., announcing a team update, following up after a meeting, declining a vendor).</li>
+          <li>Use the prompt below as your starting point, filling in the brackets.</li>
+        </ol>
+
+        <h4>Starter prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Write a [warm/formal/direct] email to [audience] about [topic]. Keep it under [X] sentences, use plain language, and close with a clear call to action.</div>
+
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Tip:</strong> Try changing the tone word (warm vs. formal vs. direct) and see how dramatically the output shifts with just one word changed.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c11" onchange="updateChecklist()">
+          <label for="c11">I drafted a work email with AI</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity 2 -->
+    <div class="agent-card" data-step="12">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(164,189,255,.12);border:1px solid rgba(164,189,255,.3);">📄</div>
+        <div class="agent-title">
+          <strong>Summarize a document</strong>
+          <span>Practice: context + format</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What you'll practice</h4>
+        <p>Using context and format instructions to turn a long document into an audience-appropriate summary.</p>
+
+        <h4>How to do it</h4>
+        <ol class="step-list">
+          <li>Find some text to summarize — meeting notes, a policy doc, a long email thread, or a Slack conversation.</li>
+          <li>Copy the text and paste it into Claude at the end of your prompt.</li>
+          <li>Use the prompt below, then try changing the audience and see how the summary shifts.</li>
+        </ol>
+
+        <h4>Starter prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Summarize the following text in 3 bullet points for someone who wasn't in the meeting. Focus on decisions made and next steps. Use plain language and avoid acronyms: [paste your text here]</div>
+
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Tip:</strong> Add "for a [clinical / non-technical / executive] audience" and notice how the vocabulary and emphasis change.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c12" onchange="updateChecklist()">
+          <label for="c12">I summarized a document with AI</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity 3 -->
+    <div class="agent-card" data-step="13">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(77,101,37,.08);border:1px solid rgba(77,101,37,.2);">💡</div>
+        <div class="agent-title">
+          <strong>Brainstorm ideas</strong>
+          <span>Practice: roles + specificity</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What you'll practice</h4>
+        <p>Using a role assignment and specific constraints to generate more useful, creative output than a vague "give me ideas" prompt ever would.</p>
+
+        <h4>How to do it</h4>
+        <ol class="step-list">
+          <li>Pick a real problem or challenge you're working on — a project you need to move forward, a process that needs improvement, or a decision you're weighing.</li>
+          <li>Use the prompt below, filling in your actual challenge.</li>
+          <li>Once you get the 5 ideas, follow up: "Rank these by feasibility and explain your reasoning."</li>
+        </ol>
+
+        <h4>Starter prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Act as a creative strategist with experience in healthcare operations. Give me 5 unconventional ideas for [your challenge]. For each idea, include one potential risk and one reason it could actually work at a company like Pelago.</div>
+
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Tip:</strong> Change "Act as a creative strategist" to "Act as a skeptical CFO" or "Act as a frontline employee" to get completely different perspectives on the same problem.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c13" onchange="updateChecklist()">
+          <label for="c13">I brainstormed ideas with AI</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity 4 -->
+    <div class="agent-card" data-step="14">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(252,211,191,.2);border:1px solid rgba(252,211,191,.5);">🔧</div>
+        <div class="agent-title">
+          <strong>Fix a bad prompt</strong>
+          <span>Practice: diagnosing + rewriting</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What you'll practice</h4>
+        <p>Recognizing what makes a prompt weak, then applying the four elements from Chapter 1 to rewrite it into something that actually works.</p>
+
+        <h4>How to do it</h4>
+        <ol class="step-list">
+          <li>Send the intentionally vague prompt below to Claude exactly as written. Read the response.</li>
+          <li>Now rewrite the prompt yourself, adding task, context, format, and constraints.</li>
+          <li>Send your improved version and compare the two responses side by side.</li>
+        </ol>
+
+        <h4>The bad prompt (send this first)</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Help me with my work.</div>
+
+        <div class="visual-cue">
+          <span class="icon">💡</span>
+          <div>After you compare both responses, you'll see exactly how much specificity matters — and it'll stick with you every time you write a prompt from now on.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c14" onchange="updateChecklist()">
+          <label for="c14">I rewrote a vague prompt and compared the results</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity 5 -->
+    <div class="agent-card" data-step="15">
+      <button class="agent-toggle" onclick="toggleAgent(this)">
+        <div class="agent-icon" style="background:rgba(238,188,255,.15);border:1px solid rgba(238,188,255,.4);">📋</div>
+        <div class="agent-title">
+          <strong>Turn meeting notes into action items</strong>
+          <span>Practice: step-by-step + format</span>
+        </div>
+        <div class="agent-arrow">&#x25BE;</div>
+      </button>
+      <div class="agent-body">
+        <h4>What you'll practice</h4>
+        <p>Using a structured, multi-part prompt to extract and format information from messy, real-world input.</p>
+
+        <h4>How to do it</h4>
+        <ol class="step-list">
+          <li>Copy some meeting notes — real ones from a recent meeting, or quickly make up a short fake meeting scenario.</li>
+          <li>Paste them at the end of the prompt below.</li>
+          <li>After you get the table, follow up: "Now draft a brief follow-up email summarizing these action items for the team."</li>
+        </ol>
+
+        <h4>Starter prompt</h4>
+        <div class="prompt-box" onclick="copyPrompt(this)">Extract all action items from these meeting notes. For each action item, identify: (1) who owns it, (2) what specifically needs to be done, and (3) any deadline mentioned. Format your answer as a table with columns: Owner | Action | Deadline. If no deadline is mentioned, write "TBD": [paste your notes here]</div>
+
+        <div class="visual-cue tip">
+          <span class="icon">✅</span>
+          <div><strong>Tip:</strong> The follow-up prompt ("Now draft a follow-up email…") shows how staying in the same conversation lets you build on previous output without re-explaining everything.</div>
+        </div>
+        <div class="step-check">
+          <input type="checkbox" id="c15" onchange="updateChecklist()">
+          <label for="c15">I turned meeting notes into action items with AI</label>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- Confetti canvas & celebration banner -->
+<canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+<div class="celebration-banner" id="celebrationBanner">
+  <button onclick="document.getElementById('celebrationBanner').style.display='none'" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--jet-black);opacity:.5;">&times;</button>
+  <h2>🎉 You're a Prompting Pro!</h2>
+  <p>You've completed the Effective Prompting training at Pelago.</p>
+  <a href="#adminPanel" onclick="document.getElementById('celebrationBanner').style.display='none';setTimeout(function(){document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'})},100)" style="display:inline-block;margin-top:14px;padding:10px 28px;background:var(--jet-black);color:var(--pelago-yellow);border-radius:100px;font-weight:700;font-size:14px;text-decoration:none;letter-spacing:.02em;">View Leaderboard &darr;</a>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="container">
+  <div class="admin-panel" id="adminPanel">
+    <h3>Prompting Leaderboard</h3>
+    <p class="admin-desc">Everyone who has completed or is working through the Effective Prompting training. Progress is tracked locally in each person's browser.</p>
+    <div class="admin-count" id="adminStats">
+      <div class="stat"><span class="stat-num" id="statTotal">0</span><span class="stat-label">Checked in</span></div>
+      <div class="stat"><span class="stat-num" id="statCompleted">0</span><span class="stat-label">Completed</span></div>
+      <div class="stat"><span class="stat-num" id="statInProgress">0</span><span class="stat-label">In progress</span></div>
+      <div class="stat"><span class="stat-num" id="statNotStarted">0</span><span class="stat-label">Not started</span></div>
+    </div>
+    <div class="allstars-section" id="allstarsSection" style="display:none;">
+      <div class="allstars-header">
+        <span class="star-icon">&#127942;</span>
+        <h4>All-Stars</h4>
+        <span class="allstar-count" id="allstarCount">0</span>
+      </div>
+      <div class="allstars-grid" id="allstarsGrid"></div>
+    </div>
+    <div class="inprogress-header" id="inprogressHeader" style="display:none;">
+      <h4>Still On The Journey</h4>
+    </div>
+    <table class="admin-table" id="adminTable">
+      <thead>
+        <tr><th style="width:40px;text-align:center;">#</th><th>Name</th><th>Progress</th><th>Chapters</th><th>Status</th><th>Last active</th></tr>
+      </thead>
+      <tbody id="adminBody">
+        <tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">No one has checked in yet. Be the first!</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;align-items:center;margin-top:14px;">
+      <button class="admin-export-btn" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:40px 24px;color:var(--text-dim);font-size:13px;border-top:1px solid var(--border);background:var(--white);">
+  <p>Pelago Health AI Skills Training &bull; <a href="https://claude.ai" target="_blank" style="color:var(--maroon);text-decoration:none;font-weight:600;">Open Claude</a></p>
+</footer>
+
+<script>
+  /* ══════════════════════════════════════════════════════════════════
+   *  MODULE CONFIG
+   * ══════════════════════════════════════════════════════════════════ */
+  const SHEET_WEBHOOK_URL = '';
+  const EMAIL_DOMAIN      = '@pelagohealth.com';
+  const STORAGE_PREFIX    = 'pelago_prompting_';
+
+  const CHECKLIST_LABELS = {
+    c0:  'Confirmed access',
+    c1:  'Understood what a prompt is',
+    c2:  'Learned how AI interprets words',
+    c3:  'Identified the four elements of a great prompt',
+    c4:  'Practiced writing specific prompts',
+    c5:  'Added context to a prompt',
+    c6:  'Specified output format',
+    c7:  'Used a role or persona',
+    c8:  'Iterated and refined a prompt',
+    c9:  'Used step-by-step prompting',
+    c10: 'Used few-shot prompting with examples',
+    c11: 'Drafted a work email with AI',
+    c12: 'Summarized a document with AI',
+    c13: 'Brainstormed ideas with AI',
+    c14: 'Rewrote a vague prompt and compared results',
+    c15: 'Turned meeting notes into action items',
+  };
+
+  const CH1_IDS = ['c1', 'c2', 'c3'];
+  const CH2_IDS = ['c4', 'c5', 'c6', 'c7'];
+  const CH3_IDS = ['c8', 'c9', 'c10'];
+  const CH4_IDS = ['c11', 'c12', 'c13', 'c14', 'c15'];
+  const CH3_REQUIRED = CH3_IDS.length;
+  const CH4_REQUIRED = 3; // Complete any 3 of 5 activities
+
+  /* ══════════════════════════════════════════════════════════════════
+   *  END OF CONFIG
+   * ══════════════════════════════════════════════════════════════════ */
+
+  const ALL_IDS = [...CH1_IDS, ...CH2_IDS, ...CH3_IDS, ...CH4_IDS];
+
+  let accessLog = [];
+  let currentUserEmail = localStorage.getItem(STORAGE_PREFIX + 'email') || '';
+  let currentUserName  = localStorage.getItem(STORAGE_PREFIX + 'name')  || '';
+
+  function saveState() {
+    localStorage.setItem(STORAGE_PREFIX + 'email', currentUserEmail);
+    localStorage.setItem(STORAGE_PREFIX + 'name',  currentUserName);
+    const checks = {};
+    ALL_IDS.forEach(id => {
+      const cb = document.getElementById(id);
+      if (cb) checks[id] = cb.checked;
+    });
+    localStorage.setItem(STORAGE_PREFIX + 'checks', JSON.stringify(checks));
+  }
+
+  function getChapterProgress(ids, requiredCount) {
+    const checked = ids.filter(id => document.getElementById(id) && document.getElementById(id).checked).length;
+    const total = requiredCount || ids.length;
+    return { checked: Math.min(checked, total), total, pct: Math.round((Math.min(checked, total) / total) * 100) };
+  }
+
+  function getOverallProgress() {
+    const ch1 = getChapterProgress(CH1_IDS);
+    const ch2 = getChapterProgress(CH2_IDS);
+    const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED);
+    const ch4 = getChapterProgress(CH4_IDS, CH4_REQUIRED);
+    const checked = ch1.checked + ch2.checked + ch3.checked + ch4.checked;
+    const total   = ch1.total   + ch2.total   + ch3.total   + ch4.total;
+    return { checked, total, pct: Math.round((checked / total) * 100) };
+  }
+
+  function getOnboardingStatus() {
+    const p = getOverallProgress();
+    if (p.pct === 100) return 'complete';
+    if (p.checked > 0) return 'in-progress';
+    return 'not-started';
+  }
+
+  function getCheckedTasks() {
+    return ALL_IDS.filter(id => document.getElementById(id) && document.getElementById(id).checked)
+      .map(id => CHECKLIST_LABELS[id]);
+  }
+
+  // ── Email check-in ──
+  function checkEmail() {
+    const input  = document.getElementById('emailInput');
+    const result = document.getElementById('emailResult');
+    const email  = input.value.trim().toLowerCase();
+    if (!email) {
+      result.className = 'email-result error';
+      result.innerHTML = '<strong>Please enter your email address.</strong>';
+      return;
+    }
+    if (email.endsWith(EMAIL_DOMAIN)) {
+      const name = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      currentUserEmail = email;
+      currentUserName  = name;
+      saveState();
+      result.className = 'email-result success';
+      result.innerHTML = '<strong>Welcome, ' + name + '!</strong> Your spot is saved. Ready to start?' +
+        '<br><a href="https://claude.ai" target="_blank" class="verify-btn">Open Claude &rarr;</a>';
+      const c0 = document.getElementById('c0');
+      if (c0) { c0.checked = true; updateChecklist(); }
+      logAccess(name, email);
+    } else if (email.includes('@')) {
+      result.className = 'email-result error';
+      result.innerHTML = '<strong>This email isn\'t on the ' + EMAIL_DOMAIN + ' domain.</strong> Please use your Pelago work email.';
+    } else {
+      result.className = 'email-result error';
+      result.innerHTML = '<strong>Please enter a valid email address.</strong>';
+    }
+  }
+
+  // ── Tracking ──
+  function logAccess(name, email) {
+    const existing = accessLog.find(e => e.email === email);
+    if (existing) { existing.timestamp = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); syncToSheet(existing); updateAdminTable(); return; }
+    const entry = {
+      name, email, status: 'not-started', progress: '0%',
+      ch1: '0 of ' + CH1_IDS.length,
+      ch2: '0 of ' + CH2_IDS.length,
+      ch3: '0 of ' + CH3_REQUIRED,
+      ch4: '0 of ' + CH4_REQUIRED,
+      tasks: [],
+      timestamp: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    };
+    accessLog.push(entry);
+    syncToSheet(entry);
+    updateAdminTable();
+  }
+
+  function updateUserProgress() {
+    if (!currentUserEmail) return;
+    const entry = accessLog.find(e => e.email === currentUserEmail);
+    if (!entry) return;
+    const ch1 = getChapterProgress(CH1_IDS);
+    const ch2 = getChapterProgress(CH2_IDS);
+    const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED);
+    const ch4 = getChapterProgress(CH4_IDS, CH4_REQUIRED);
+    const overall = getOverallProgress();
+    entry.status   = getOnboardingStatus();
+    entry.progress = overall.pct + '%';
+    entry.ch1 = ch1.checked + ' of ' + ch1.total;
+    entry.ch2 = ch2.checked + ' of ' + ch2.total;
+    entry.ch3 = ch3.checked + ' of ' + ch3.total;
+    entry.ch4 = ch4.checked + ' of ' + ch4.total;
+    entry.tasks = getCheckedTasks();
+    entry.timestamp = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    if (overall.pct === 100 && !entry.completedAt) {
+      entry.completedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_PREFIX + 'completed', entry.completedAt);
+    }
+    if (!entry.completedAt) entry.completedAt = localStorage.getItem(STORAGE_PREFIX + 'completed') || '';
+    syncToSheet(entry);
+    updateAdminTable();
+  }
+
+  function syncToSheet(entry) {
+    if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL.startsWith('{{')) return;
+    try {
+      const params = new URLSearchParams();
+      params.append('name',        entry.name        || '');
+      params.append('email',       entry.email       || '');
+      params.append('status',      entry.status      || 'not-started');
+      params.append('progress',    entry.progress    || '0%');
+      params.append('ch1',         entry.ch1         || '0 of ' + CH1_IDS.length);
+      params.append('ch2',         entry.ch2         || '0 of ' + CH2_IDS.length);
+      params.append('ch3',         entry.ch3         || '0 of ' + CH3_REQUIRED);
+      params.append('ch4',         entry.ch4         || '0 of ' + CH4_REQUIRED);
+      params.append('tasks',       JSON.stringify(entry.tasks || []));
+      params.append('completedAt', entry.completedAt || '');
+      params.append('timestamp',   entry.timestamp   || '');
+      fetch(SHEET_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).catch(() => {});
+    } catch (err) {}
+  }
+
+  // ── Leaderboard ──
+  function updateAdminTable() {
+    const body = document.getElementById('adminBody');
+    const allstarsGrid = document.getElementById('allstarsGrid');
+    const allstarsSection = document.getElementById('allstarsSection');
+    const inprogressHeader = document.getElementById('inprogressHeader');
+    if (!body) return;
+    const validEntries = accessLog.filter(e => e.email);
+    function parsePct(v) { let n = parseFloat(v) || 0; return (n > 0 && n <= 1) ? Math.round(n * 100) : Math.round(n); }
+    function parseChapter(val, fallback) {
+      if (!val) return { str: fallback, parts: fallback.split(' of ') };
+      const s = String(val);
+      if (s.includes(' of ')) return { str: s, parts: s.split(' of ') };
+      return { str: fallback, parts: fallback.split(' of ') };
+    }
+    function parseDate(val) { if (!val) return 0; try { const normalized = String(val).replace(/(\d{4})\s+at\s+/i, '$1, '); const d = new Date(normalized); return isNaN(d.getTime()) ? 0 : d.getTime(); } catch(e) { return 0; } }
+    function formatCompleted(val) { if (!val) return ''; try { const normalized = String(val).replace(/(\d{4})\s+at\s+/i, '$1, '); const d = new Date(normalized); if (isNaN(d.getTime())) return val; return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); } catch(e) { return val; } }
+    const allstars = validEntries.filter(e => parsePct(e.progress) === 100);
+    const inProgress = validEntries.filter(e => parsePct(e.progress) < 100);
+    const sortedAllstars = [...allstars].sort((a, b) => { const da = parseDate(a.completedAt) || parseDate(a.timestamp); const db = parseDate(b.completedAt) || parseDate(b.timestamp); return db - da; });
+    if (sortedAllstars.length > 0) {
+      allstarsSection.style.display = 'block';
+      document.getElementById('allstarCount').textContent = sortedAllstars.length;
+      allstarsGrid.innerHTML = sortedAllstars.map(e => '<div class="allstar-card"><div class="allstar-medal">&#127942;</div><div><div class="allstar-name">' + e.name + '</div><span class="allstar-badge">100% COMPLETE</span><div class="allstar-date">' + (formatCompleted(e.completedAt) || formatCompleted(e.timestamp) || '') + '</div></div></div>').join('');
+    } else { allstarsSection.style.display = 'none'; }
+    inprogressHeader.style.display = (inProgress.length > 0 && allstars.length > 0) ? 'flex' : 'none';
+    const sortedInProgress = [...inProgress].sort((a, b) => parsePct(b.progress) - parsePct(a.progress));
+    const rows = sortedInProgress.map((e, idx) => {
+      let pct = parsePct(e.progress);
+      const statusLabel = e.status === 'complete' ? 'Complete' : e.status === 'in-progress' ? 'In Progress' : 'Not Started';
+      const ch1 = parseChapter(e.ch1, '0 of ' + CH1_IDS.length);
+      const ch2 = parseChapter(e.ch2, '0 of ' + CH2_IDS.length);
+      const ch3 = parseChapter(e.ch3, '0 of ' + CH3_REQUIRED);
+      const ch4 = parseChapter(e.ch4, '0 of ' + CH4_REQUIRED);
+      const ch1Done = parseInt(ch1.parts[0]) === parseInt(ch1.parts[1]); const ch1Partial = parseInt(ch1.parts[0]) > 0 && !ch1Done;
+      const ch2Done = parseInt(ch2.parts[0]) === parseInt(ch2.parts[1]); const ch2Partial = parseInt(ch2.parts[0]) > 0 && !ch2Done;
+      const ch3Done = parseInt(ch3.parts[0]) === parseInt(ch3.parts[1]); const ch3Partial = parseInt(ch3.parts[0]) > 0 && !ch3Done;
+      const ch4Done = parseInt(ch4.parts[0]) === parseInt(ch4.parts[1]); const ch4Partial = parseInt(ch4.parts[0]) > 0 && !ch4Done;
+      return '<tr><td style="text-align:center;font-size:14px;width:40px;color:var(--text-dim);font-weight:600;">' + (idx + 1) + '</td><td><strong>' + e.name + '</strong></td><td><strong style="font-size:13px;">' + pct + '%</strong><div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%;background:var(--pelago-yellow)"></div></div></td><td><div class="chapter-pips" title="Ch1: ' + ch1.str + '  Ch2: ' + ch2.str + '  Ch3: ' + ch3.str + '  Ch4: ' + ch4.str + '"><div class="chapter-pip ' + (ch1Done ? 'done' : ch1Partial ? 'partial' : '') + '"></div><div class="chapter-pip ' + (ch2Done ? 'done' : ch2Partial ? 'partial' : '') + '"></div><div class="chapter-pip ' + (ch3Done ? 'done' : ch3Partial ? 'partial' : '') + '"></div><div class="chapter-pip ' + (ch4Done ? 'done' : ch4Partial ? 'partial' : '') + '"></div></div><span style="font-size:11px;color:var(--text-dim);">' + ch1.str + ' · ' + ch2.str + ' · ' + ch3.str + ' · ' + ch4.str + '</span></td><td><span class="admin-status ' + e.status + '">' + statusLabel + '</span></td><td>' + e.timestamp + '</td></tr>';
+    }).join('');
+    body.innerHTML = rows || '<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">No one has checked in yet. Be the first!</td></tr>';
+    document.getElementById('statTotal').textContent = validEntries.length;
+    document.getElementById('statCompleted').textContent = allstars.length;
+    document.getElementById('statInProgress').textContent = validEntries.filter(e => e.status === 'in-progress').length;
+    document.getElementById('statNotStarted').textContent = validEntries.filter(e => e.status === 'not-started').length;
+  }
+
+  function exportCSV() {
+    if (accessLog.length === 0) { alert('No data to export.'); return; }
+    let csv = 'Name,Email,Status,Progress,Chapter 1,Chapter 2,Chapter 3,Chapter 4,Completed Tasks,Last Active\n';
+    accessLog.forEach(e => {
+      const tasks = (e.tasks || []).join('; ');
+      csv += '"' + e.name + '","' + e.email + '","' + e.status + '","' + e.progress + '","' + e.ch1 + '","' + e.ch2 + '","' + e.ch3 + '","' + (e.ch4 || '') + '","' + tasks + '","' + e.timestamp + '"\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = STORAGE_PREFIX + 'progress.csv'; a.click();
+  }
+
+  // ── Accordion ──
+  function toggle(btn) { btn.closest('.step-card').classList.toggle('open'); }
+  function toggleAgent(btn) { btn.closest('.agent-card').classList.toggle('open'); }
+  function copyPrompt(el) {
+    const text = el.textContent.replace('Click to copy', '').replace('Copied!', '').trim();
+    navigator.clipboard.writeText(text).then(() => { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 1500); });
+  }
+
+  // ── Checklist update ──
+  function updateChecklist() {
+    document.querySelectorAll('.check-item').forEach(item => { const cb = item.querySelector('input'); item.classList.toggle('checked', cb.checked); });
+    document.querySelectorAll('.step-check input[type="checkbox"]').forEach(cb => {
+      const card = cb.closest('.step-card') || cb.closest('.agent-card');
+      if (card) { const allChecks = card.querySelectorAll('.step-check input[type="checkbox"]'); card.classList.toggle('step-done', Array.from(allChecks).every(c => c.checked)); }
+    });
+    saveState();
+    updateUserProgress();
+    updateProgress();
+    checkCompletion();
+  }
+
+  // ── Confetti ──
+  let confettiDone = false;
+  function checkCompletion() {
+    const overall = getOverallProgress();
+    const allstarBanner = document.getElementById('allstarBanner');
+    if (overall.pct === 100 || localStorage.getItem(STORAGE_PREFIX + 'completed')) allstarBanner.style.display = 'block';
+    if (overall.pct === 100 && !confettiDone) { confettiDone = true; launchConfetti(); document.getElementById('celebrationBanner').style.display = 'block'; }
+  }
+
+  function launchConfetti() {
+    const canvas = document.getElementById('confettiCanvas'); const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const pelagoColors = ['#FAE355','#722F49','#4D6525','#A4BDFF','#EEBCFF','#DDF1C4','#FCD3BF','#BDA98C'];
+    const pieces = [];
+    for (let i = 0; i < 200; i++) pieces.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, w: Math.random() * 10 + 5, h: Math.random() * 6 + 3, color: pelagoColors[Math.floor(Math.random() * pelagoColors.length)], vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2, rot: Math.random() * 360, rotV: (Math.random() - 0.5) * 10, opacity: 1 });
+    let frame = 0;
+    function draw() { ctx.clearRect(0, 0, canvas.width, canvas.height); let alive = false; pieces.forEach(p => { if (p.opacity <= 0) return; alive = true; p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.rot += p.rotV; if (frame > 120) p.opacity -= 0.008; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180); ctx.globalAlpha = Math.max(0, p.opacity); ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore(); }); frame++; if (alive) requestAnimationFrame(draw); else ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    draw();
+  }
+
+  function updateProgress() {
+    const ch1 = getChapterProgress(CH1_IDS);
+    const ch2 = getChapterProgress(CH2_IDS);
+    const ch3 = getChapterProgress(CH3_IDS, CH3_REQUIRED);
+    const ch4 = getChapterProgress(CH4_IDS, CH4_REQUIRED);
+    const overall = getOverallProgress();
+    const steps = document.querySelectorAll('.progress-step');
+    if (steps[0]) steps[0].className = 'progress-step' + (ch1.pct === 100 ? ' done' : ch1.checked > 0 ? ' active' : '');
+    if (steps[1]) steps[1].className = 'progress-step' + (ch2.pct === 100 ? ' done' : ch2.checked > 0 ? ' active' : '');
+    if (steps[2]) steps[2].className = 'progress-step' + (ch3.pct === 100 ? ' done' : ch3.checked > 0 ? ' active' : '');
+    if (steps[3]) steps[3].className = 'progress-step' + (ch4.pct === 100 ? ' done' : ch4.checked > 0 ? ' active' : '');
+    document.getElementById('progressLabel').textContent = overall.checked + ' / ' + overall.total;
+  }
+
+  document.querySelectorAll('.progress-step').forEach(step => {
+    step.addEventListener('click', () => {
+      const ch = step.dataset.chapter;
+      const el = document.getElementById('ch' + ch);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const observer = new MutationObserver(updateProgress);
+  document.querySelectorAll('.step-card, .agent-card').forEach(card => { observer.observe(card, { attributes: true, attributeFilter: ['class'] }); });
+
+  // ── Restore saved state on load ──
+  (function restoreState() {
+    if (!currentUserEmail) return;
+    const input = document.getElementById('emailInput'); const result = document.getElementById('emailResult');
+    if (input) input.value = currentUserEmail;
+    if (result) { result.className = 'email-result success'; result.innerHTML = '<strong>Welcome back, ' + currentUserName + '!</strong> Your progress has been restored.<br><a href="https://claude.ai" target="_blank" class="verify-btn">Open Claude &rarr;</a>'; }
+    const entry = {
+      name: currentUserName, email: currentUserEmail, status: 'not-started', progress: '0%',
+      ch1: '0 of ' + CH1_IDS.length,
+      ch2: '0 of ' + CH2_IDS.length,
+      ch3: '0 of ' + CH3_REQUIRED,
+      ch4: '0 of ' + CH4_REQUIRED,
+      tasks: [],
+      completedAt: localStorage.getItem(STORAGE_PREFIX + 'completed') || '',
+      timestamp: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    };
+    accessLog.push(entry);
+    const saved = localStorage.getItem(STORAGE_PREFIX + 'checks');
+    if (saved) {
+      try {
+        const checks = JSON.parse(saved);
+        Object.keys(checks).forEach(id => { const cb = document.getElementById(id); if (cb) { cb.checked = checks[id]; const item = cb.closest('.check-item'); if (item) item.classList.toggle('checked', checks[id]); } });
+        document.querySelectorAll('.step-card, .agent-card').forEach(card => { const allChecks = card.querySelectorAll('.step-check input[type="checkbox"]'); if (allChecks.length > 0) card.classList.toggle('step-done', Array.from(allChecks).every(c => c.checked)); });
+      } catch(e) {}
+    }
+    updateUserProgress(); updateProgress(); checkCompletion();
+  })();
+</script>
+
+<!-- FLOATING HELP BUTTON -->
+<button class="help-fab" onclick="openFeedback()" title="Send feedback">?</button>
+
+<!-- FEEDBACK MODAL -->
+<div class="feedback-overlay" id="feedbackOverlay" onclick="if(event.target===this)closeFeedback()">
+  <div class="feedback-modal">
+    <button class="fb-close" onclick="closeFeedback()">&times;</button>
+    <div id="fbForm">
+      <h3>Send Feedback</h3>
+      <p class="fb-desc">Having trouble or have a suggestion? Let Christina know and she'll follow up.</p>
+      <label for="fbName">Your name</label>
+      <input type="text" id="fbName" placeholder="e.g. Jane Smith">
+      <label for="fbEmail">Email</label>
+      <input type="email" id="fbEmail" placeholder="yourname@pelagohealth.com">
+      <label for="fbMessage">Message</label>
+      <textarea id="fbMessage" placeholder="What's on your mind? Questions, issues, or ideas are all welcome..."></textarea>
+      <div class="feedback-actions">
+        <button class="fb-cancel" onclick="closeFeedback()">Cancel</button>
+        <button class="fb-send" onclick="sendFeedback()">Send Feedback</button>
+      </div>
+    </div>
+    <div class="fb-success" id="fbSuccess">
+      <div class="fb-check">&#10003;</div>
+      <strong>Feedback sent!</strong>
+      <p>Thanks for your input. Christina will get back to you soon.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openFeedback() { document.getElementById('feedbackOverlay').classList.add('open'); document.getElementById('fbForm').style.display = 'block'; document.getElementById('fbSuccess').style.display = 'none'; if (typeof currentUserEmail !== 'undefined' && currentUserEmail) document.getElementById('fbEmail').value = currentUserEmail; if (typeof currentUserName !== 'undefined' && currentUserName) document.getElementById('fbName').value = currentUserName; }
+  function closeFeedback() { document.getElementById('feedbackOverlay').classList.remove('open'); }
+  function sendFeedback() {
+    const name = document.getElementById('fbName').value.trim(); const email = document.getElementById('fbEmail').value.trim(); const message = document.getElementById('fbMessage').value.trim();
+    if (!message) { document.getElementById('fbMessage').style.borderColor = '#c0392b'; return; }
+    if (SHEET_WEBHOOK_URL && !SHEET_WEBHOOK_URL.startsWith('{{')) { const params = new URLSearchParams(); params.append('type', 'feedback'); params.append('name', name || 'Anonymous'); params.append('email', email || 'Not provided'); params.append('message', message); fetch(SHEET_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).catch(() => {}); }
+    document.getElementById('fbForm').style.display = 'none'; document.getElementById('fbSuccess').style.display = 'block';
+    setTimeout(() => { document.getElementById('fbMessage').value = ''; document.getElementById('fbMessage').style.borderColor = ''; }, 500);
+    setTimeout(closeFeedback, 3000);
+  }
+</script>
+
+</body>
+</html>
